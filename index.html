@@ -17,6 +17,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="preconnect" href="https://bkjxgaxkvokwwolfajce.supabase.co">
+<script>window.SB_CONFIG={url:'https://bkjxgaxkvokwwolfajce.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJranhnYXhrdm9rd3dvbGZhamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyNjA2ODUsImV4cCI6MjEwODgzNjY4NX0.s-GlcK03ElXJXPUE65BA6c1ywiTzT_sf2jdoJzW_AI4'};</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
 <style>
@@ -269,6 +272,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
     <div class="pals" id="pals" role="group" hidden><span id="palName"></span></div>
     <div class="pals" id="backup" hidden>
       <span id="bkNote" style="flex:1 1 100%"></span>
+      <div id="bkLocal" style="flex:1 1 100%;display:flex;flex-direction:column;gap:6px" hidden></div>
       <button type="button" class="chipbtn" id="bkDown" data-en="Download backup file">نزّلي ملف النسخة</button>
       <label class="chipbtn" style="cursor:pointer"><span data-en="Restore from file">استرجعي من ملف</span><input type="file" id="bkFile" accept=".json,application/json,text/plain" hidden></label>
       <button type="button" class="chipbtn" id="bkCopy" data-en="Copy backup">انسخي النسخة</button>
@@ -638,12 +642,20 @@ function loadLocal(){entries=[];wishes=[];debts=[];settings=Object.assign({},DEF
 function saveLocal(){if(!profile)return;try{localStorage.setItem(dataKey(),JSON.stringify({entries,settings,wishes,debts}))}catch(e){msg(L('المتصفح رفض يحفظ. اعملي نسخة احتياطية دلوقتي.','This browser refused to save. Copy a backup now.'),true)}}
 function setStatus(){
   const s=$('status');
-  if(mode==='cloud') s.textContent=L('دفترك خاص بحسابك. محدش غيرك يقدر يشوفه، حتى لو فتح نفس اللينك.','Your book is private to your account. No one else can see it, even with the same link.');
+  if(mode==='cloud'&&sbUser) s.textContent=L('متزامن مع حسابك · ','Synced to your account · ')+(sbUser.email||'');
+  else if(mode==='cloud') s.textContent=L('دفترك خاص بحسابك. محدش غيرك يقدر يشوفه، حتى لو فتح نفس اللينك.','Your book is private to your account. No one else can see it, even with the same link.');
   else if(mode==='local') s.textContent=profile?L('دفتر «'+(getProfiles()[profile]||{}).name+'» · محفوظ على المتصفح ده بس','“'+(getProfiles()[profile]||{}).name+'” · saved in this browser only'):'';
   else s.textContent=L('بيحمّل الدفتر…','Loading…');
 }
 async function init(){
   render();
+  if(window.SB_CONFIG){
+    if(SB_ON()){await sbInit();return}
+    document.querySelector('.app').hidden=true;document.querySelector('.tabbar').hidden=true;$('auth').hidden=false;
+    $('authForm').hidden=true;document.querySelector('#auth .seg').hidden=true;$('aForgot').hidden=true;
+    $('authNote').textContent=L('مش قادرة أوصل للنت. اتأكدي من الاتصال وافتحي التطبيق تاني.','Cannot reach the internet. Check your connection and open the app again.');
+    return;
+  }
   try{
     if(!window.claude||!window.claude.use) throw 0;
     const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
@@ -1356,9 +1368,164 @@ $('debtList').addEventListener('click',async e=>{
     armedDebt=null;if(debtEdit===id)resetDebtForm();try{await delDebt(id)}catch(err){msg(L('ماتمسحتش.','Not deleted.'),true)}}
 });
 
+/* ---------- cloud accounts (standalone app: Supabase email + password) ----------
+   Only active when the page defines window.SB_CONFIG (the Vercel build). Each person's rows are
+   protected by row-level security in the database, so one account can never read another's. */
+let sb=null, sbUser=null, sbChan=null, sbAuthMode='login';
+const SB_ON=()=>!!(window.SB_CONFIG&&window.supabase&&window.supabase.createClient);
+function sbRow(r){return Object.assign({},r.data||{},{id:r.id})}
+function sbErr(e){
+  const m=String((e&&e.message)||e||'');
+  if(/Invalid login credentials/i.test(m)) return L('الإيميل أو الباسورد مش صح.','Email or password is not right.');
+  if(/Email not confirmed/i.test(m)) return L('لسه ماأكدتيش الإيميل. افتحي رسالة التأكيد اللي وصلتلك ودوسي على اللينك.','Your email is not confirmed yet. Open the confirmation email and tap the link.');
+  if(/already registered|already exists/i.test(m)) return L('الإيميل ده عليه حساب خلاص. اختاري «دخول».','That email already has an account. Choose Log in.');
+  if(/rate limit|too many/i.test(m)) return L('محاولات كتير ورا بعض. استني شوية وجربي تاني.','Too many attempts. Wait a bit and try again.');
+  if(/Password should be/i.test(m)) return L('الباسورد لازم يكون 6 حروف أو أكتر.','The password must be at least 6 characters.');
+  if(/fetch|network/i.test(m)) return L('مفيش اتصال بالنت. اتأكدي من النت وجربي تاني.','No connection. Check your internet and try again.');
+  return m;
+}
+function sbTable(table,get,set){
+  const up=async(id,obj)=>{
+    const data=Object.assign({},obj); delete data.id;
+    const {error}=await sb.from(table).upsert({user_id:sbUser.id,id,data,updated_at:new Date().toISOString()});
+    if(error) throw error;
+    const arr=get().slice(), i=arr.findIndex(x=>x.id===id), row=Object.assign({},data,{id});
+    if(i>-1) arr[i]=row; else arr.push(row); set(arr); render();
+  };
+  return {
+    add:async obj=>{const id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);await up(id,obj);return {id}},
+    doc:id=>({
+      set:obj=>up(id,obj),
+      update:async patch=>{const cur=get().find(x=>x.id===id)||{};const m=Object.assign({},cur,patch);delete m.id;await up(id,m)},
+      delete:async()=>{const {error}=await sb.from(table).delete().eq('id',id);if(error) throw error;set(get().filter(x=>x.id!==id));render()}
+    })
+  };
+}
+function sbApplySettings(data){
+  settings=migrateSettings(Object.assign({},DEFAULTS,data||{}));
+  if(settings.palette&&settings.palette!==curPal) applyPal(settings.palette);
+  if(settings.lang&&settings.lang!==lang){lang=settings.lang;try{localStorage.setItem('ledger-lang',lang)}catch(e){}applyStatic();drawCats()}
+}
+async function sbLoadAll(){
+  const q=t=>sb.from(t).select('id,data').limit(10000);
+  const [a,b,c,s]=await Promise.all([q('entries'),q('wishes'),q('debts'),sb.from('settings').select('data').maybeSingle()]);
+  const err=a.error||b.error||c.error||s.error; if(err) throw err;
+  entries=a.data.map(sbRow); wishes=b.data.map(sbRow); debts=c.data.map(sbRow);
+  sbApplySettings(s.data&&s.data.data);
+  render();
+}
+function sbSubscribe(){
+  if(sbChan){sb.removeChannel(sbChan);sbChan=null}
+  const uid=sbUser.id, f='user_id=eq.'+uid;
+  const arrs={entries:[()=>entries,v=>entries=v],wishes:[()=>wishes,v=>wishes=v],debts:[()=>debts,v=>debts=v]};
+  let t=null; const later=()=>{clearTimeout(t);t=setTimeout(render,120)};
+  sbChan=sb.channel('book-'+uid);
+  Object.keys(arrs).forEach(tb=>sbChan.on('postgres_changes',{event:'*',schema:'public',table:tb,filter:f},p=>{
+    const [get,set]=arrs[tb];
+    if(p.eventType==='DELETE'){const id=p.old&&p.old.id;if(id) set(get().filter(x=>x.id!==id))}
+    else if(p.new&&p.new.id){const arr=get().slice(),i=arr.findIndex(x=>x.id===p.new.id),row=sbRow(p.new);if(i>-1)arr[i]=row;else arr.push(row);set(arr)}
+    later();
+  }));
+  sbChan.on('postgres_changes',{event:'*',schema:'public',table:'settings',filter:f},p=>{if(p.new&&p.new.data){sbApplySettings(p.new.data);later()}});
+  sbChan.subscribe();
+}
+function sbLabel(input,ar,en){const sp=input.previousElementSibling;sp.dataset.ar=ar;sp.dataset.en=en;sp.textContent=lang==='en'?en:ar}
+function sbAuthUI(){
+  const isNew=$('am-new').checked, reset=sbAuthMode==='reset';
+  document.querySelector('#auth .seg').hidden=reset; $('aName').closest('label').hidden=reset;
+  $('aName').type='email'; $('aName').autocomplete='email'; $('aName').inputMode='email'; $('aName').maxLength=120;
+  ['aPin','aPin2'].forEach(i=>{$(i).inputMode='text';$(i).maxLength=72});
+  sbLabel($('aName'),'الإيميل','Email');
+  sbLabel($('aPin'),reset?'الباسورد الجديد (6 حروف أو أكتر)':'الباسورد (6 حروف أو أكتر)',reset?'New password (6+ characters)':'Password (6+ characters)');
+  sbLabel($('aPin2'),'اكتبي الباسورد تاني','Repeat password');
+  const nl=document.querySelector('label:has(#am-new) span'); if(nl){nl.dataset.ar='حساب جديد';nl.dataset.en='New account';nl.textContent=lang==='en'?'New account':'حساب جديد'}
+  $('aPin2Wrap').hidden=!(isNew||reset); $('aForgot').hidden=isNew||reset;
+  $('aForgot').dataset.ar='نسيتي الباسورد؟';$('aForgot').dataset.en='Forgot your password?';$('aForgot').textContent=lang==='en'?'Forgot your password?':'نسيتي الباسورد؟';
+  $('aPin').autocomplete=(isNew||reset)?'new-password':'current-password';
+  $('aSubmit').textContent=reset?L('احفظي الباسورد الجديد','Save new password'):isNew?L('اعملي الحساب','Create account'):L('دخول','Log in');
+  $('aLang').textContent=lang==='en'?'عربي':'English';
+  $('authProfiles').innerHTML='';
+  $('authNote').innerHTML=reset?L('اكتبي باسورد جديد لحسابك.','Choose a new password for your account.'):L('دفترك متحفظ على حسابك، فهتلاقيه على الموبايل واللابتوب وأي جهاز تدخلي منه بنفس الإيميل. ومحدش غيرك يقدر يشوفه.','Your book is saved to your account, so you will find it on your phone, laptop and any device where you log in with the same email. No one else can see it.');
+}
+function showSbAuth(m){
+  sbAuthMode=m||'login';
+  document.querySelector('.app').hidden=true;document.querySelector('.tabbar').hidden=true;$('auth').hidden=false;
+  $('aPin').value='';$('aPin2').value='';$('authMsg').textContent='';$('forgotBox').hidden=true;
+  if(sbAuthMode!=='reset'){let last='';try{last=localStorage.getItem('ledger-email')||''}catch(e){}($(last?'am-login':'am-new')).checked=true;if(last&&!$('aName').value)$('aName').value=last}
+  authUI();setTimeout(()=>(sbAuthMode==='reset'||$('aName').value?$('aPin'):$('aName')).focus(),50);
+}
+async function sbEnter(user){
+  sbUser=user; mode='cloud'; profile=null;
+  try{localStorage.setItem('ledger-email',user.email||'')}catch(e){}
+  col=sbTable('entries',()=>entries,v=>entries=v); wcol=sbTable('wishes',()=>wishes,v=>wishes=v); dcol=sbTable('debts',()=>debts,v=>debts=v);
+  setRef={set:async obj=>{const {error}=await sb.from('settings').upsert({user_id:sbUser.id,data:obj,updated_at:new Date().toISOString()});if(error) throw error;render()}};
+  $('auth').hidden=true;document.querySelector('.app').hidden=false;document.querySelector('.tabbar').hidden=false;
+  $('logoutBtn').hidden=false;$('bkBtn').hidden=false;
+  resetForm();drawCats();switchTab('add');render();
+  try{await sbLoadAll()}catch(e){msg(L('مش قادرة أفتح الدفتر: ','Could not open your book: ')+sbErr(e),true)}
+  sbSubscribe(); drawCats();
+  if(Object.keys(getProfiles()).length&&!entries.length) msg(L('عندك دفتر قديم على الجهاز ده. افتحي «نسخة احتياطية» فوق عشان تنقليه لحسابك.','There is an older book on this device. Open Backup to move it into your account.'));
+}
+async function sbInit(){
+  sb=window.supabase.createClient(window.SB_CONFIG.url,window.SB_CONFIG.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  sb.auth.onAuthStateChange((ev,session)=>{
+    if(ev==='PASSWORD_RECOVERY'){showSbAuth('reset');return}
+    if(ev==='SIGNED_IN'&&session&&!sbUser&&sbAuthMode!=='reset'){sbEnter(session.user)}
+  });
+  let session=null; try{session=(await sb.auth.getSession()).data.session}catch(e){}
+  if(session&&sbAuthMode!=='reset') await sbEnter(session.user); else if(sbAuthMode!=='reset') showSbAuth('login');
+}
+async function sbAuthSubmit(){
+  const am=$('authMsg'), email=$('aName').value.trim(), pw=$('aPin').value, isNew=$('am-new').checked;
+  am.textContent='';
+  if(sbAuthMode==='reset'){
+    if(pw.length<6){am.textContent=L('الباسورد لازم يكون 6 حروف أو أكتر.','The password must be at least 6 characters.');return}
+    if(pw!==$('aPin2').value){am.textContent=L('الباسوردين مش زي بعض.','The passwords do not match.');return}
+    const {data,error}=await sb.auth.updateUser({password:pw}); if(error){am.textContent=sbErr(error);return}
+    sbAuthMode='login'; msg(L('الباسورد اتغير.','Password changed.')); await sbEnter(data.user); return;
+  }
+  if(!/^\S+@\S+\.\S+$/.test(email)){am.textContent=L('اكتبي إيميل صحيح.','Enter a valid email.');$('aName').focus();return}
+  if(pw.length<6){am.textContent=L('الباسورد لازم يكون 6 حروف أو أكتر.','The password must be at least 6 characters.');$('aPin').focus();return}
+  $('aSubmit').disabled=true;
+  try{
+    if(isNew){
+      if(pw!==$('aPin2').value){am.textContent=L('الباسوردين مش زي بعض.','The passwords do not match.');return}
+      const {data,error}=await sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin}});
+      if(error){am.textContent=sbErr(error);return}
+      if(data.session){await sbEnter(data.user);msg(L('اتعمل حسابك. ابدئي سجّلي.','Your account is ready. Start logging.'))}
+      else{am.textContent=L('بعتنالك إيميل تأكيد على '+email+'. افتحيه ودوسي على اللينك، وبعدين ارجعي هنا ودوسي «دخول».','We sent a confirmation email to '+email+'. Open it, tap the link, then come back and Log in.');$('am-login').checked=true;authUI()}
+    } else {
+      const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+      if(error){am.textContent=sbErr(error);$('aPin').value='';$('aPin').focus();return}
+      await sbEnter(data.user);
+    }
+  } finally {$('aSubmit').disabled=false}
+}
+async function sbForgot(){
+  const email=$('aName').value.trim(), box=$('forgotBox'); box.hidden=false;
+  if(!/^\S+@\S+\.\S+$/.test(email)){box.textContent=L('اكتبي إيميلك فوق الأول وبعدين دوسي تاني.','Type your email above first, then tap again.');return}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+  box.textContent=error?sbErr(error):L('لو الإيميل ده عليه حساب، هيوصلك لينك تغيّري بيه الباسورد.','If this email has an account, a link to reset your password is on its way.');
+}
+async function sbLogout(){
+  try{if(sbChan){sb.removeChannel(sbChan);sbChan=null}await sb.auth.signOut()}catch(e){}
+  sbUser=null; mode='loading'; entries=[];wishes=[];debts=[];settings=migrateSettings(Object.assign({},DEFAULTS));
+  showSbAuth('login');
+}
+// Write the rows a restore added, in one request per table.
+async function sbBulk(table,rows){
+  if(!rows.length) return;
+  const now=new Date().toISOString();
+  for(let i=0;i<rows.length;i+=500){
+    const {error}=await sb.from(table).upsert(rows.slice(i,i+500).map(r=>{const d=Object.assign({},r);delete d.id;return {user_id:sbUser.id,id:r.id,data:d,updated_at:now}}));
+    if(error) throw error;
+  }
+}
+
 /* ---------- local login ---------- */
 let authFails=0, authLockUntil=0, forgotArmed=false;
 function authUI(){
+  if(SB_ON()){sbAuthUI();return}
   const isNew=$('am-new').checked, profs=getProfiles(), names=Object.keys(profs);
   $('aPin2Wrap').hidden=!isNew; $('aForgot').hidden=isNew||!names.length;
   $('aPin').autocomplete=isNew?'new-password':'current-password';
@@ -1387,6 +1554,7 @@ $('aLang').addEventListener('click',()=>{setLang(lang==='en'?'ar':'en');authUI()
 $('authProfiles').addEventListener('click',e=>{const b=e.target.closest('[data-pn]');if(!b)return;$('aName').value=b.dataset.pn;$('aPin').focus()});
 $('authForm').addEventListener('submit',async e=>{
   e.preventDefault();
+  if(SB_ON()){await sbAuthSubmit();return}
   const am=$('authMsg'), name=$('aName').value.trim(), key=pid(name), pin=$('aPin').value.trim(), profs=getProfiles();
   if(!name){am.textContent=L('اكتبي الاسم.','Enter a name.');$('aName').focus();return}
   if(!/^\d{4,6}$/.test(pin)){am.textContent=L('الرقم السري من 4 لـ 6 أرقام.','The PIN is 4 to 6 digits.');$('aPin').focus();return}
@@ -1404,6 +1572,7 @@ $('authForm').addEventListener('submit',async e=>{
   authFails=0;enterBook(key);
 });
 $('aForgot').addEventListener('click',()=>{
+  if(SB_ON()){sbForgot();return}
   const key=pid($('aName').value||''), p=getProfiles()[key], box=$('forgotBox');box.hidden=false;
   if(!p){box.textContent=L('اكتبي اسم الدفتر الأول وبعدين دوسي تاني.','Type the book name first, then tap again.');return}
   box.innerHTML=L('الرقم السري مش متخزن في أي مكان يترجع منه. الحل الوحيد إنك تمسحي دفتر «','The PIN is not stored anywhere it can be recovered from. The only option is to delete the book “')+esc(p.name)+L('» بكل اللي فيه وتبدئي من أول.','” with everything in it and start over.')+' <button type="button" class="linkbtn danger" id="aWipe">'+L('امسحي الدفتر ده','Delete this book')+'</button>';
@@ -1415,28 +1584,46 @@ $('forgotBox').addEventListener('click',e=>{
   const profs=getProfiles();delete profs[key];setProfiles(profs);try{localStorage.removeItem('ledger-v1:'+key)}catch(e){}
   $('aName').value='';showAuth();$('authMsg').textContent=L('اتمسح.','Deleted.');
 });
-$('logoutBtn').addEventListener('click',()=>{$('backup').hidden=true;$('bkBtn').setAttribute('aria-expanded','false');$('logoutBtn').hidden=true;$('bkBtn').hidden=true;showAuth()});
+$('logoutBtn').addEventListener('click',()=>{$('backup').hidden=true;$('bkBtn').setAttribute('aria-expanded','false');$('logoutBtn').hidden=true;$('bkBtn').hidden=true;if(SB_ON()){sbLogout();return}showAuth()});
 /* backup (local books) */
 let restoreArmed=false;
 $('bkBtn').addEventListener('click',()=>{const open=$('backup').hidden;$('backup').hidden=!open;$('bkBtn').setAttribute('aria-expanded',String(open));restoreArmed=false;
   $('bkNote').textContent=L('انسخي النسخة وابعتيها لنفسك في رسالة أو احفظيها في النوتس. لو الدفتر ضاع أو غيّرتي الجهاز، اعملي دفتر بنفس الاسم والصقي النسخة هنا ودوسي «استرجعي».','Copy the backup and send it to yourself or keep it in notes. If the book is lost or you change devices, create a book with the same name, paste the backup here and tap Restore.');
-  $('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text')});
+  $('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text');
+  const profs=getProfiles(), keys=Object.keys(profs), box=$('bkLocal');
+  box.hidden=!(SB_ON()&&sbUser&&keys.length);
+  if(!box.hidden) box.innerHTML='<strong style="color:var(--ink);font-weight:600">'+L('دفاتر قديمة على الجهاز ده','Older books on this device')+'</strong>'+keys.map(k=>'<div class="payrow" data-lk="'+esc(k)+'"><span style="min-width:5rem">'+esc(profs[k].name)+'</span><input type="password" inputmode="numeric" maxlength="6" placeholder="PIN" aria-label="PIN"><button type="button" class="chipbtn">'+L('انقليه لحسابي','Move into my account')+'</button></div>').join('');
+});
+$('bkLocal').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;const row=b.closest('[data-lk]'),k=row.dataset.lk,p=getProfiles()[k],pin=row.querySelector('input').value.trim();
+  if(!p||await hashPin(p.salt,pin)!==p.hash){msg(L('الرقم السري مش صح.','The PIN is not right.'),true);return}
+  let raw='';try{raw=localStorage.getItem('ledger-v1:'+k)||''}catch(err){}
+  let d=null;try{d=JSON.parse(raw)}catch(err){}
+  if(!d||!Array.isArray(d.entries)){msg(L('الدفتر ده فاضي.','That book is empty.'),true);return}
+  $('bkText').value=JSON.stringify({app:'daftar-flousy',v:1,entries:d.entries,settings:d.settings||{},wishes:d.wishes||[],debts:d.debts||[]});
+  restoreArmed=true;$('bkRestore').click();
+});
 $('bkCopy').addEventListener('click',()=>{
   const txt=JSON.stringify({app:'daftar-flousy',v:1,entries,settings,wishes,debts});
   const fallback=()=>{$('bkText').value=txt;$('bkText').focus();$('bkText').select();msg(L('النسخة في المربع. انسخيها من هناك.','The backup is in the box. Copy it from there.'))};
   try{navigator.clipboard.writeText(txt).then(()=>msg(L('اتنسخت. الصقيها في مكان آمن.','Copied. Paste it somewhere safe.')),fallback)}catch(e){fallback()}
 });
-$('bkRestore').addEventListener('click',()=>{
+$('bkRestore').addEventListener('click',async()=>{
   let d;try{d=JSON.parse($('bkText').value)}catch(e){d=null}
   if(!d||!Array.isArray(d.entries)){msg(L('النص ده مش نسخة احتياطية من الدفتر.','That text is not a backup of this book.'),true);return}
   if(!restoreArmed){restoreArmed=true;$('bkRestore').textContent=L('متأكدة؟ الحركات اللي مش موجودة هتتضاف','Sure? Missing entries will be added');return}
   restoreArmed=false;
   // Merge, never replace: anything already in this book stays; only entries it does not have yet are added.
   const mergeById=(cur,inc)=>{const ids=new Set(cur.map(x=>x.id));const out=cur.slice();let n=0;(inc||[]).forEach((x,i)=>{const y=x.id?x:Object.assign({id:'r'+Date.now()+i},x);if(!ids.has(y.id)){out.push(y);ids.add(y.id);n++}});return [out,n]};
+  const oldE=new Set(entries.map(x=>x.id)),oldW=new Set(wishes.map(x=>x.id)),oldD=new Set(debts.map(x=>x.id));
   const [ne,added]=mergeById(entries,d.entries);entries=ne;wishes=mergeById(wishes,d.wishes)[0];debts=mergeById(debts,d.debts)[0];
   const mine={};Object.keys(settings).forEach(k=>{if(JSON.stringify(settings[k])!==JSON.stringify(DEFAULTS[k])&&!(Array.isArray(settings[k])&&!settings[k].length))mine[k]=settings[k]});
   settings=migrateSettings(Object.assign({},DEFAULTS,migrateSettings(Object.assign({},d.settings||{})),mine));
-  saveLocal();render();$('bkText').value='';$('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text');
+  if(mode==='cloud'&&sbUser){
+    try{await sbBulk('entries',entries.filter(x=>!oldE.has(x.id)));await sbBulk('wishes',wishes.filter(x=>!oldW.has(x.id)));await sbBulk('debts',debts.filter(x=>!oldD.has(x.id)));await setRef.set(settings)}
+    catch(err){msg(L('ماتحفظش كله: ','Not everything was saved: ')+sbErr(err),true);try{await sbLoadAll()}catch(e2){}return}
+  } else saveLocal();
+  render();$('bkText').value='';$('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text');
   msg(added?L('اتضاف '+added+' حركة، والدفتر فيه دلوقتي '+entries.length+' حركة.','Added '+added+' entries; the book now has '+entries.length+'.'):L('كل الحركات دي موجودة خلاص.','All of these entries are already here.'));
 });
 
