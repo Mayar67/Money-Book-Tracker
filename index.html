@@ -175,6 +175,18 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
 .gfill.give{background:var(--give)}
 .goalform{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
 .goalform .field{flex:1 1 140px}
+.srcs{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.srcs h3{font-size:.95rem;font-weight:600}
+.srcrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:var(--bg);border-radius:12px;padding:10px 12px}
+.srcrow .t{font-weight:600}
+.srcrow .sub{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.srcrow button{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:8px;padding:5px 12px;font-size:.82rem}
+.chk{display:flex;align-items:center;gap:8px;font-size:.88rem;flex:1 1 100%}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.unitrow{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;flex:1 1 100%}
+.unitrow .field{flex:1 1 110px}
+.unitrow button{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:9px 12px}
+#unitsWrap{display:contents}
 
 /* wishes + debts */
 .wbudget{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -288,13 +300,13 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
           <select id="method"><option value="كاش" data-en="Cash">كاش</option><option value="كارت" data-en="Card">كارت</option><option value="InstaPay">InstaPay</option><option value="محفظة موبايل" data-en="Mobile wallet">محفظة موبايل</option><option value="تحويل بنكي" data-en="Bank transfer">تحويل بنكي</option></select></label>
       </div>
       <div class="field"><span data-en="Category">الفئة</span><div class="chips" id="cats"></div></div>
+      <label class="field" id="fromWrap" hidden style="max-width:360px"><span data-en="Paid from the money of">اتصرف من فلوس شهر</span><select id="fromMonth"></select></label>
       <div class="row" id="extraRow" hidden>
-        <label class="field" id="dedWrap" hidden><span data-en="Deductions (EGP)">الخصومات من المرتب (ج.م)</span><input id="deduct" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
+        <label class="field" id="dedWrap" hidden><span data-en="Deductions (EGP)">الخصومات (ج.م)</span><input id="deduct" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
         <label class="field" id="netWrap" hidden><span data-en="Net to count">الصافي اللي هيتحسب</span><input id="netShow" readonly tabindex="-1" style="direction:ltr;text-align:right;background:transparent"></label>
         <label class="field" id="forWrap" hidden><span data-en="Spent in month">بيتصرف في شهر</span><select id="forMonth"></select></label>
-        <label class="field" id="workWrap" hidden><span data-en="For zooms of">عن زومات شهر</span><select id="workMonth"></select></label>
-        <label class="field" id="zoomWrap" hidden><span><span data-en="IADB zooms">زومات IADB</span> <span id="rIADB"></span></span><input id="zIADB" inputmode="numeric" placeholder="0" style="direction:ltr;text-align:right"></label>
-        <label class="field" id="dlcWrap" hidden><span><span data-en="DLC zooms">زومات DLC</span> <span id="rDLC"></span></span><input id="zDLC" inputmode="numeric" placeholder="0" style="direction:ltr;text-align:right"></label>
+        <label class="field" id="workWrap" hidden><span data-en="For work in">عن شغل شهر</span><select id="workMonth"></select></label>
+        <div id="unitsWrap" hidden></div>
       </div>
       <label class="field"><span data-en="Note (optional)">ملاحظة (اختياري)</span><input id="note" placeholder="مثلاً: قهوة قبل السيشن، أوبر للموقع…" data-en-ph="e.g. coffee before the session, Uber to site…" maxlength="140"></label>
       <div class="actions">
@@ -339,13 +351,31 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
       <div class="bars" id="flowBars"></div>
       <div class="legend"><span><i style="background:var(--in)"></i><span data-en="Income">دخل</span></span><span><i style="background:var(--out)"></i><span data-en="Spending">مصروف</span></span><span><i style="background:var(--save)"></i><span data-en="Savings">حوشة</span></span></div>
       <div class="bars" id="incomeBars"></div>
-      <form class="goalform" id="salaryForm">
-        <label class="field"><span data-en="Fixed salary before deductions">المرتب الثابت قبل الخصومات</span><input id="salaryAmt" inputmode="decimal" style="direction:ltr;text-align:right"></label>
-        <label class="field" style="flex:0 1 110px"><span data-en="Paid from day">بيتقبض من يوم</span><input id="salaryDay" inputmode="numeric" style="direction:ltr;text-align:right"></label>
-        <label class="field" style="flex:0 1 110px"><span data-en="IADB zoom">زوم IADB</span><input id="rateI" inputmode="decimal" style="direction:ltr;text-align:right"></label>
-        <label class="field" style="flex:0 1 110px"><span data-en="DLC zoom">زوم DLC</span><input id="rateD" inputmode="decimal" style="direction:ltr;text-align:right"></label>
-        <button class="btn ghost" type="submit" data-en="Save">احفظ</button>
-      </form>
+      <div class="srcs">
+        <div class="head" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline"><h3 data-en="My income sources">مصادر دخلي</h3><span class="muted" style="font-size:.8rem" data-en="Salary, commission, freelance…">مرتب، كوميشن، شغل حر…</span></div>
+        <div id="srcList" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button type="button" class="btn ghost" id="srcAdd" data-en="+ Add an income source">+ ضيفي مصدر دخل</button>
+        <form class="goalform" id="srcForm" hidden autocomplete="off">
+          <label class="field" style="flex:2 1 180px"><span data-en="Name">الاسم</span><input id="srcName" maxlength="40" placeholder="مثلاً: المرتب، كوميشن، شغل فريلانس" data-en-ph="e.g. Salary, commission, freelance"></label>
+          <label class="field" style="flex:1 1 150px"><span data-en="Amount is">المبلغ</span><select id="srcKind"><option value="fixed" data-en="Fixed every month">ثابت كل شهر</option><option value="variable" data-en="Changes each time">بيتغير كل مرة</option><option value="units" data-en="Count × price (sessions, zooms…)">بالعدد × سعر (حصص، زومات…)</option></select></label>
+          <label class="field" id="srcAmtWrap" style="flex:1 1 120px"><span data-en="Usual amount">المبلغ المعتاد</span><input id="srcAmt" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
+          <label class="field" style="flex:1 1 90px"><span data-en="Paid from day">بيتقبض من يوم</span><input id="srcDay" inputmode="numeric" placeholder="1" style="direction:ltr;text-align:right"></label>
+          <label class="field" style="flex:1 1 90px"><span data-en="To day (optional)">لحد يوم (اختياري)</span><input id="srcDayTo" inputmode="numeric" style="direction:ltr;text-align:right"></label>
+          <label class="field" style="flex:2 1 220px"><span data-en="I spend it in">بصرفه في</span><select id="srcSpend"><option value="same" data-en="The month I receive it">نفس الشهر اللي بقبضه فيه</option><option value="next" data-en="The month after">الشهر اللي بعده</option></select></label>
+          <label class="field" style="flex:2 1 220px"><span data-en="It pays for work in">بيكون عن شغل</span><select id="srcWork"><option value="same" data-en="The same month">نفس الشهر</option><option value="prev" data-en="The month before">الشهر اللي قبله</option></select></label>
+          <label class="chk"><input type="checkbox" id="srcDed"><span data-en="Deductions are taken from it">بيتخصم منه خصومات</span></label>
+          <div id="srcUnitsBox" style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px" hidden>
+            <label class="field" style="max-width:220px"><span data-en="What do you count? (optional)">بتعدّي إيه؟ (اختياري)</span><input id="srcUnitName" maxlength="20" placeholder="زوم، حصة، ساعة" data-en-ph="zoom, session, hour"></label>
+            <div id="srcUnits" style="display:flex;flex-direction:column;gap:6px"></div>
+            <button type="button" class="chipbtn" id="srcUnitAdd" style="align-self:flex-start" data-en="+ Add a price">+ ضيفي سعر</button>
+          </div>
+          <div class="actions" style="flex:1 1 100%">
+            <button class="btn" type="submit" id="srcSave">احفظي</button>
+            <button class="btn ghost" type="button" id="srcCancel" data-en="Cancel">إلغاء</button>
+            <button class="btn ghost" type="button" id="srcDel" hidden style="color:var(--out);border-color:var(--out)">مسح المصدر</button>
+          </div>
+        </form>
+      </div>
     </section>
     <div class="grid2">
       <section class="panel">
@@ -472,11 +502,11 @@ const TYPES_EN={expense:'Expense',income:'Income',save:'Savings',withdraw:'From 
 const typeName=t=>(lang==='en'?TYPES_EN:TYPES_AR)[t];
 const CATS={
   expense:['أكل وشرب','مواصلات','بيت وفواتير','شغل وأدوات','كورسات وتعليم','لبس وعناية','صحة','خروجات','اشتراكات وموبايل','هدايا ومناسبات','تمرين ورياضة','صدقة','تاني'],
-  income:['مرتب ثابت','كوميشن الزومات','شغل إضافي','جمعية','هدية','تاني'],
+  income:['شغل إضافي','جمعية','هدية','تاني'],
   save:['حوشة عامة','طوارئ','الهدف','جمعية'],
   withdraw:['حوشة عامة','طوارئ','الهدف']
 };
-const CAT_EN={'أكل وشرب':'Food & drinks','مواصلات':'Transport','بيت وفواتير':'Home & bills','شغل وأدوات':'Work & tools','كورسات وتعليم':'Courses','لبس وعناية':'Clothes & care','صحة':'Health','خروجات':'Outings','اشتراكات وموبايل':'Subscriptions & phone','هدايا ومناسبات':'Gifts & occasions','تمرين ورياضة':'Exercise','صدقة':'Sadaqa','تاني':'Other','مرتب ثابت':'Salary','كوميشن الزومات':'Zoom commission','شغل إضافي':'Extra work','هدية':'Gift','حوشة عامة':'General savings','طوارئ':'Emergency fund','الهدف':'Goal','جمعية':'Gamʿeya'};
+const CAT_EN={'أكل وشرب':'Food & drinks','مواصلات':'Transport','بيت وفواتير':'Home & bills','شغل وأدوات':'Work & tools','كورسات وتعليم':'Courses','لبس وعناية':'Clothes & care','صحة':'Health','خروجات':'Outings','اشتراكات وموبايل':'Subscriptions & phone','هدايا ومناسبات':'Gifts & occasions','تمرين ورياضة':'Exercise','صدقة':'Sadaqa','تاني':'Other','مرتب ثابت':'Salary','مرتب':'Salary','كوميشن الزومات':'Zoom commission','شغل إضافي':'Extra work','هدية':'Gift','حوشة عامة':'General savings','طوارئ':'Emergency fund','الهدف':'Goal','جمعية':'Gamʿeya'};
 const catName=c=>lang==='en'?(CAT_EN[c]||c):c;
 const METH_EN={'كاش':'Cash','كارت':'Card','InstaPay':'InstaPay','محفظة موبايل':'Mobile wallet','تحويل بنكي':'Bank transfer'};
 const methName=m=>lang==='en'?(METH_EN[m]||m):m;
@@ -503,10 +533,9 @@ const num=s=>{const v=parseFloat(String(s??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤
 const mDiff=(a,b)=>{const[y1,m1]=a.split('-').map(Number),[y2,m2]=b.split('-').map(Number);return (y2*12+m2)-(y1*12+m1)};
 const addM=(ym,n)=>{const[y,m]=ym.split('-').map(Number);return ymOf(new Date(y,m-1+n,1))};
 
-const SAL='مرتب ثابت', COM='كوميشن الزومات', GAM='جمعية', GIVE='صدقة';
+const GAM='جمعية', GIVE='صدقة';
 // Neutral defaults: each person's own numbers live only in their private settings doc, never in the page.
 const DEFAULTS={goalName:'',goalAmount:0,salary:0,salaryDay:25,rateIADB:0,rateDLC:0,dlcLast:'',giveGoal:0,giveMode:'pct',gam:null};
-const hasZooms=()=>settings.rateIADB>0||settings.rateDLC>0;
 const PALS=[{id:'navywine',ar:'كحلي وبرجندي',en:'Navy & burgundy',bg:'#282E40',ac:'#CF8A9A'},{id:'wine',ar:'برجندي هادي',en:'Soft burgundy',bg:'#33262D',ac:'#9DB7DC'},{id:'slate',ar:'أزرق رمادي',en:'Slate blue',bg:'#272F39',ac:'#8FB3D4'},{id:'dusk',ar:'غروب بنفسجي',en:'Violet dusk',bg:'#2B2838',ac:'#A7B3E3'}];
 const PRIO=()=>lang==='en'?['Essential','Important','When I can']:['ضروري','مهم','لما أقدر'];
 const KIND=k=>({once:L('مرة واحدة','One-time'),monthly:L('اشتراك شهري','Monthly subscription'),yearly:L('اشتراك سنوي','Yearly subscription')})[k]||'';
@@ -519,7 +548,48 @@ let selType='expense', selCat=CATS.expense[0], editId=null, pickedDay=null, arme
 
 function gamInfo(ym){const g=settings.gam;if(!g||!g.start)return {none:true,g:{monthly:0,months:0},idx:0,active:false,payoutHere:false,end:ym,payout:0};const idx=mDiff(g.start,ym)+1;return {g,idx,active:idx>=1&&idx<=g.months,payoutHere:ym===g.payoutMonth,end:addM(g.start,g.months-1),payout:g.monthly*g.months}}
 const isGam=e=>e.cat===GAM&&(e.type==='save'||e.type==='withdraw');
-const zoomTxt=e=>{const z=L(' زوم',' zooms');return e.zoomsBy?[e.zoomsBy.IADB?e.zoomsBy.IADB+' IADB':'',e.zoomsBy.DLC?e.zoomsBy.DLC+' DLC':''].filter(Boolean).join(' + ')+z:(e.zooms?e.zooms+z:'')};
+/* ---------- income sources (each person defines their own) ---------- */
+const srcList=()=>Array.isArray(settings.sources)?settings.sources:[];
+const srcByName=n=>srcList().find(x=>x.name===n);
+function migrateSettings(st){
+  if(Array.isArray(st.sources)) return st;
+  const out=[];
+  if(st.salary>0) out.push({id:'salary',name:'مرتب ثابت',kind:'fixed',amount:st.salary,day:st.salaryDay||25,dayTo:0,spendNext:true,forPrev:false,deductions:true,unitName:'',units:[]});
+  if(st.rateIADB>0||st.rateDLC>0){const u=[];if(st.rateIADB>0)u.push({key:'IADB',name:'IADB',rate:st.rateIADB,until:''});if(st.rateDLC>0)u.push({key:'DLC',name:'DLC',rate:st.rateDLC,until:st.dlcLast||''});
+    out.push({id:'zooms',name:'كوميشن الزومات',kind:'units',amount:0,day:10,dayTo:15,spendNext:false,forPrev:true,deductions:false,unitName:'زوم',units:u});}
+  st.sources=out; return st;
+}
+function incomeCats(){const n=srcList().map(x=>x.name);return [...n,...(n.length?[]:['مرتب']),...CATS.income.filter(c=>!n.includes(c))]}
+function unitsTxt(e){
+  const u=e.units||e.zoomsBy; const src=srcByName(e.cat);
+  if(!u) return e.zooms?e.zooms+(src&&src.unitName?' '+src.unitName:''):'';
+  const nm=k=>{const x=src&&(src.units||[]).find(y=>y.key===k);return x?x.name:k};
+  const parts=Object.entries(u).filter(([,n])=>n>0).map(([k,n])=>n+' '+nm(k));
+  return parts.length?parts.join(' + ')+(src&&src.unitName?' · '+src.unitName:''):'';
+}
+const daysIn=ym=>new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
+/* ---------- budget months ----------
+   Income paid early for next month (e.g. salary on the 29th for next month) starts that month's budget
+   on the day it is received: spending and saving from that day on come out of the new month's money,
+   unless the entry says otherwise (fromMonth). Whatever is left of a month carries over to the next. */
+let PSC=null;
+function payStarts(){const m={};entries.forEach(e=>{if(e.type!=='income'||!e.budgetMonth||!e.date)return;if(e.date.slice(0,7)!==addM(e.budgetMonth,-1))return;if(!m[e.budgetMonth]||e.date<m[e.budgetMonth])m[e.budgetMonth]=e.date});return m}
+function autoBudget(date,PS){const ym=date.slice(0,7),nx=addM(ym,1);return PS[nx]&&date>=PS[nx]?nx:ym}
+function budgetOf(e,PS){const d=e.date||'';if(e.type==='income')return e.budgetMonth||d.slice(0,7);if(e.type==='expense'||e.type==='save')return e.fromMonth||autoBudget(d,PS||PSC||payStarts());return d.slice(0,7)}
+function ledger(ym,PS){
+  // Carry-over starts at the first month that has income logged; months before tracking began stand alone.
+  PS=PS||payStarts(); let minYm=ym; const bm=new Map();
+  entries.forEach(e=>{if(!e.date)return;const b=budgetOf(e,PS);bm.set(e,b);if(e.type==='income'&&b<minYm)minYm=b});
+  let carry=0,res={carry:0,inc:0,out:0,sv:0,df:0,left:0};
+  for(let m=minYm;m<=ym;m=addM(m,1)){
+    let inc=0,out=0,sv=0;
+    bm.forEach((b,e)=>{if(b!==m)return;const a=+e.amount||0;if(e.type==='income')inc+=a;else if(e.type==='expense')out+=a;else if(e.type==='save')sv+=a;else if(e.type==='withdraw')sv-=a});
+    const df=debtFlow(m), left=carry+inc-out-sv+df;
+    if(m===ym) res={carry,inc,out,sv,df,left};
+    carry=left;
+  }
+  return res;
+}
 
 /* ---------- toast ---------- */
 let toastT=null;
@@ -564,7 +634,7 @@ const dataKey=()=>'ledger-v1:'+profile;
 function getProfiles(){try{return JSON.parse(localStorage.getItem(PKEY)||'{}')}catch(e){return {}}}
 function setProfiles(p){try{localStorage.setItem(PKEY,JSON.stringify(p));return true}catch(e){return false}}
 async function hashPin(salt,pin){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+':'+pin));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){let h=7;for(const c of salt+':'+pin)h=(h*31+c.charCodeAt(0))|0;return 'x'+h}}
-function loadLocal(){entries=[];wishes=[];debts=[];settings=Object.assign({},DEFAULTS);if(!profile)return;try{const r=JSON.parse(localStorage.getItem(dataKey())||'{}');entries=r.entries||[];wishes=r.wishes||[];debts=r.debts||[];settings=Object.assign({},DEFAULTS,r.settings||{})}catch(e){}}
+function loadLocal(){entries=[];wishes=[];debts=[];settings=Object.assign({},DEFAULTS);if(!profile)return;try{const r=JSON.parse(localStorage.getItem(dataKey())||'{}');entries=r.entries||[];wishes=r.wishes||[];debts=r.debts||[];settings=migrateSettings(Object.assign({},DEFAULTS,r.settings||{}))}catch(e){}}
 function saveLocal(){if(!profile)return;try{localStorage.setItem(dataKey(),JSON.stringify({entries,settings,wishes,debts}))}catch(e){msg(L('المتصفح رفض يحفظ. اعملي نسخة احتياطية دلوقتي.','This browser refused to save. Copy a backup now.'),true)}}
 function setStatus(){
   const s=$('status');
@@ -590,7 +660,7 @@ async function init(){
       ()=>msg(L('مش قادرة أقرا الدفتر دلوقتي. اعملي ريفرش للصفحة.','Could not read your book. Refresh the page.'),true));
     wcol.onSnapshot(s=>{wishes=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},()=>{});
     dcol.onSnapshot(s=>{debts=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},()=>{});
-    setRef.onSnapshot(s=>{if(s.exists){settings=Object.assign({},DEFAULTS,s.data());
+    setRef.onSnapshot(s=>{if(s.exists){settings=migrateSettings(Object.assign({},DEFAULTS,s.data()));
       if(settings.palette&&settings.palette!==curPal)applyPal(settings.palette);
       if(settings.lang&&settings.lang!==lang){lang=settings.lang;try{localStorage.setItem('ledger-lang',lang)}catch(e){}applyStatic();drawCats()}}
       render()},()=>{});
@@ -631,27 +701,38 @@ function debtFlow(ym){let f=0;debts.forEach(d=>{const s=d.dir==='lent'?-1:1;if((
 
 /* ---------- entry form ---------- */
 function drawCats(){
-  const list=CATS[selType].filter(c=>c!==COM||hasZooms()||selCat===COM); if(!list.includes(selCat)) selCat=list[0];
+  const list=(selType==='income'?incomeCats():CATS[selType]).slice();
+  if(editId&&selCat&&!list.includes(selCat)) list.push(selCat);
+  if(!list.includes(selCat)) selCat=list[0];
   $('cats').innerHTML=list.map(c=>'<button type="button" data-c="'+esc(c)+'" aria-pressed="'+(c===selCat)+'">'+esc(catName(c))+'</button>').join('');
   toggleExtra();
 }
+const curSrc=()=>selType==='income'?srcByName(selCat):null;
+function buildFromMonth(pref){
+  const date=$('date').value||iso(new Date()), ym=date.slice(0,7), auto=autoBudget(date,payStarts());
+  const cur=pref!==undefined?pref:($('fromMonth').value||'');
+  const opts=['',addM(ym,-1),ym,addM(ym,1)]; if(cur&&!opts.includes(cur)) opts.push(cur);
+  $('fromMonth').innerHTML=opts.map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v?ymLabel(v):L('تلقائي: ','Auto: ')+ymLabel(auto))+'</option>').join('');
+}
 function toggleExtra(){
-  const isSal=selType==='income'&&selCat===SAL, isCom=selType==='income'&&selCat===COM;
-  $('extraRow').hidden=!(isSal||isCom); $('dedWrap').hidden=!isSal; $('netWrap').hidden=!isSal; $('forWrap').hidden=!isSal; $('zoomWrap').hidden=!isCom; $('workWrap').hidden=!isCom;
-  if(isSal) buildForMonth($('forMonth').value||undefined);
-  if(isCom){buildWorkMonth($('workMonth').value||undefined);toggleDLC();
-    $('rIADB').textContent='('+money(settings.rateIADB)+L(' للزوم',' each')+')';$('rDLC').textContent='('+money(settings.rateDLC)+L(' للزوم',' each')+')'}
-  if(!isCom) $('dlcWrap').hidden=true;
-  $('amtLabel').textContent=isSal?L('المرتب قبل الخصومات (ج.م)','Salary before deductions (EGP)'):isCom?L('الكوميشن (ج.م) — بيتحسب من الزومات','Commission (EGP) — from zoom counts'):L('المبلغ (ج.م)','Amount (EGP)');
+  const outT=selType==='expense'||selType==='save'; $('fromWrap').hidden=!outT; if(outT) buildFromMonth();
+  const sr=curSrc(), ded=!!(sr&&sr.deductions), work=!!(sr&&sr.forPrev);
+  $('dedWrap').hidden=!ded; $('netWrap').hidden=!ded; $('forWrap').hidden=!sr; $('workWrap').hidden=!work;
+  if(sr) buildForMonth($('forMonth').value||undefined);
+  if(work) buildWorkMonth($('workMonth').value||undefined);
+  drawUnitInputs();
+  $('extraRow').hidden=!(sr);
+  const isUnits=sr&&sr.kind==='units';
+  $('amtLabel').textContent=ded?L('المبلغ قبل الخصومات (ج.م)','Amount before deductions (EGP)'):isUnits?L('المبلغ (ج.م) — بيتحسب من العدد','Amount (EGP) — from the counts'):L('المبلغ (ج.م)','Amount (EGP)');
   $('submitBtn').textContent=editId?L('احفظ التعديل','Save changes'):L('سجّل','Save');
-  if(isSal&&!$('amount').value&&!editId) $('amount').value=settings.salary||'';
+  if(sr&&sr.kind==='fixed'&&!$('amount').value&&!editId) $('amount').value=sr.amount||'';
   updateNet();
 }
 function buildForMonth(pref){
-  const d=parse($('date').value||iso(new Date()));
+  const sr=curSrc(), d=parse($('date').value||iso(new Date()));
   const same=ymOf(d), next=ymOf(new Date(d.getFullYear(),d.getMonth()+1,1));
-  const cur=(pref===same||pref===next)?pref:(pref&&pref.length===7?pref:(d.getDate()>=20?next:same));
-  const opts=[next,same]; if(!opts.includes(cur)) opts.push(cur);
+  const cur=(pref&&pref.length===7)?pref:(sr&&sr.spendNext?next:same);
+  const opts=[same,next]; if(!opts.includes(cur)) opts.push(cur);
   $('forMonth').innerHTML=opts.map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+ymLabel(v)+(v===next?L(' (الشهر اللي بعده)',' (next month)'):v===same?L(' (نفس الشهر)',' (same month)'):'')+'</option>').join('');
 }
 function buildWorkMonth(pref){
@@ -660,17 +741,31 @@ function buildWorkMonth(pref){
   const cur=pref||prev; const opts=[prev,same]; if(!opts.includes(cur)) opts.push(cur);
   $('workMonth').innerHTML=opts.map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+ymLabel(v)+'</option>').join('');
 }
-function toggleDLC(){const over=!(settings.rateDLC>0)||(settings.dlcLast&&($('workMonth').value||'')>settings.dlcLast);$('dlcWrap').hidden=over;if(over)$('zDLC').value=''}
-function calcCom(){const a=parseInt(num($('zIADB').value))||0,b=$('dlcWrap').hidden?0:(parseInt(num($('zDLC').value))||0);if(a||b)$('amount').value=a*settings.rateIADB+b*settings.rateDLC}
+function activeUnits(sr){
+  const wm=(!$('workWrap').hidden&&$('workMonth').value)||($('date').value||iso(new Date())).slice(0,7);
+  return (sr.units||[]).filter(u=>!u.until||wm<=u.until);
+}
+function drawUnitInputs(vals){
+  const sr=curSrc(), box=$('unitsWrap'), prev=vals||{};
+  if(!vals) box.querySelectorAll('input[data-u]').forEach(i=>prev[i.dataset.u]=i.value);
+  const us=sr&&sr.kind==='units'?activeUnits(sr):[];
+  box.hidden=!us.length;
+  box.innerHTML=us.map(u=>'<label class="field"><span>'+esc(u.name)+' <span class="muted">('+money(u.rate)+L(' للواحد',' each')+')</span></span><input data-u="'+esc(u.key)+'" inputmode="numeric" placeholder="0" style="direction:ltr;text-align:right" value="'+esc(prev[u.key]||'')+'"></label>').join('');
+}
+function calcUnits(){
+  const sr=curSrc(); if(!sr||sr.kind!=='units') return;
+  let t=0,any=false; $('unitsWrap').querySelectorAll('input[data-u]').forEach(i=>{const n=parseInt(num(i.value))||0;const u=(sr.units||[]).find(x=>x.key===i.dataset.u);if(n&&u){t+=n*u.rate;any=true}});
+  if(any) $('amount').value=t;
+}
 function updateNet(){const g=num($('amount').value),d=num($('deduct').value)||0;$('netShow').value=g>0?money(g-d):''}
-$('date').addEventListener('change',()=>{if(!$('forWrap').hidden)buildForMonth();if(!$('workWrap').hidden){buildWorkMonth();toggleDLC()}});
-$('zIADB').addEventListener('input',calcCom);$('zDLC').addEventListener('input',calcCom);
-$('workMonth').addEventListener('change',()=>{toggleDLC();calcCom()});
+$('date').addEventListener('change',()=>{if(!$('fromWrap').hidden)buildFromMonth();if(!$('forWrap').hidden)buildForMonth();if(!$('workWrap').hidden)buildWorkMonth();drawUnitInputs();calcUnits()});
+$('unitsWrap').addEventListener('input',calcUnits);
+$('workMonth').addEventListener('change',()=>{drawUnitInputs();calcUnits()});
 $('amount').addEventListener('input',updateNet);$('deduct').addEventListener('input',updateNet);
 $('cats').addEventListener('click',e=>{const b=e.target.closest('button[data-c]');if(!b)return;selCat=b.dataset.c;drawCats()});
 document.querySelectorAll('input[name="type"]').forEach(r=>r.addEventListener('change',()=>{selType=r.value;drawCats()}));
 function resetForm(){
-  editId=null;['amount','note','deduct','zIADB','zDLC','netShow'].forEach(i=>$(i).value='');$('date').value=iso(new Date());
+  editId=null;['amount','note','deduct','netShow'].forEach(i=>$(i).value='');$('fromMonth').innerHTML='';$('unitsWrap').innerHTML='';$('date').value=iso(new Date());
   $('cancelEdit').hidden=true;$('submitBtn').textContent=L('سجّل','Save');
 }
 function goAdd(type,cat){
@@ -683,19 +778,25 @@ $('entryForm').addEventListener('submit',async e=>{
   if(!(amount>0)){msg(L('اكتبي المبلغ بالأرقام، أكبر من صفر.','Enter the amount as a number above zero.'),true);$('amount').focus();return}
   const date=$('date').value||iso(new Date());
   const obj={type:selType,amount:Math.round(amount*100)/100,cat:selCat,note:$('note').value.trim(),date,method:$('method').value,createdAt:Date.now()};
-  if(selType==='income'&&selCat===SAL){
-    const ded=num($('deduct').value)||0;
-    if(ded<0||ded>=amount){msg(L('الخصومات لازم تكون أقل من المرتب.','Deductions must be less than the salary.'),true);$('deduct').focus();return}
-    obj.gross=obj.amount; obj.deductions=Math.round(ded*100)/100; obj.amount=Math.round((amount-ded)*100)/100;
-    obj.budgetMonth=$('forMonth').value||date.slice(0,7);
+  const sr=curSrc();
+  if(sr){
+    obj.srcId=sr.id;
+    if(sr.deductions){
+      const ded=num($('deduct').value)||0;
+      if(ded<0||ded>=amount){msg(L('الخصومات لازم تكون أقل من المبلغ.','Deductions must be less than the amount.'),true);$('deduct').focus();return}
+      obj.gross=obj.amount; obj.deductions=Math.round(ded*100)/100; obj.amount=Math.round((amount-ded)*100)/100;
+    }
+    const bm=$('forMonth').value||date.slice(0,7); if(bm!==date.slice(0,7)) obj.budgetMonth=bm;
+    if(sr.forPrev) obj.workMonth=$('workMonth').value||addM(date.slice(0,7),-1);
+    if(sr.kind==='units'){const u={};let tot=0;$('unitsWrap').querySelectorAll('input[data-u]').forEach(i=>{const n=parseInt(num(i.value))||0;if(n){u[i.dataset.u]=n;tot+=n}});if(tot){obj.units=u;obj.zooms=tot}}
   }
-  if(selType==='income'&&selCat===COM){const zi=parseInt(num($('zIADB').value))||0,zd=$('dlcWrap').hidden?0:(parseInt(num($('zDLC').value))||0);if(zi||zd){obj.zoomsBy={IADB:zi,DLC:zd};obj.zooms=zi+zd}obj.workMonth=$('workMonth').value||addM(date.slice(0,7),-1)}
+  if((selType==='expense'||selType==='save')&&$('fromMonth').value) obj.fromMonth=$('fromMonth').value;
   const wasEdit=!!editId;
   try{
     $('submitBtn').disabled=true;
     if(wasEdit){const old=entries.find(x=>x.id===editId); if(old&&old.createdAt) obj.createdAt=old.createdAt;}
     await putEntry(editId,obj);
-    const d=parse((obj.budgetMonth||date.slice(0,7))+'-01'); viewY=d.getFullYear(); viewM=d.getMonth();
+    const d=parse(budgetOf(Object.assign({},obj,{id:'tmp'}))+'-01'); viewY=d.getFullYear(); viewM=d.getMonth();
     resetForm(); drawCats();
     msg(wasEdit?L('اتعدّل.','Updated.'):L('اتسجّل: ','Saved: ')+catName(obj.cat)+' '+money(obj.amount)+' '+CUR()); render();
     if(window.matchMedia('(min-width:641px)').matches) $('amount').focus();
@@ -707,12 +808,6 @@ $('entryForm').addEventListener('submit',async e=>{
 $('goalForm').addEventListener('submit',async e=>{
   e.preventDefault();
   try{await putSettings({goalName:$('goalName').value.trim(),goalAmount:num($('goalAmount').value)||0});msg(L('الهدف اتحفظ.','Goal saved.'))}catch(err){msg(L('ماتحفظش. جرّبي تاني.','Not saved. Try again.'),true)}
-});
-$('salaryForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const a=num($('salaryAmt').value), d=parseInt(num($('salaryDay').value)), ri=num($('rateI').value), rd=num($('rateD').value);
-  if(!(a>0)){msg(L('اكتبي المرتب بالأرقام.','Enter the salary as a number.'),true);return}
-  try{await putSettings({salary:a,salaryDay:(d>=1&&d<=31)?d:25,rateIADB:ri>0?ri:settings.rateIADB,rateDLC:rd>0?rd:settings.rateDLC});msg(L('الثوابت اتحفظت.','Saved.'))}catch(err){msg(L('ماتحفظش. جرّبي تاني.','Not saved. Try again.'),true)}
 });
 $('giveForm').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -733,14 +828,15 @@ $('fixedBox').addEventListener('click',e=>{
     $('amount').value=out?gi.payout:gi.g.monthly;
     $('note').value=out?L('قبض الجمعية','Gamʿeya payout'):L('قسط الجمعية رقم ','Gamʿeya installment ')+gi.idx+L(' من ',' of ')+gi.g.months;
     drawCats();$('amount').focus();return}
-  goAdd('income',f);
-  const dim=new Date(viewY,viewM+1,0).getDate(), prevDim=new Date(viewY,viewM,0).getDate();
-  const target=f===SAL?new Date(viewY,viewM-1,Math.min(settings.salaryDay||25,prevDim)):new Date(viewY,viewM,Math.min(15,dim));
-  $('date').value=iso(target>t?t:target);
-  if(f===SAL) $('amount').value=settings.salary||'';
-  drawCats();
-  if(f===SAL) buildForMonth(ymV);
-  (f===SAL?$('deduct'):$('zIADB')).focus();
+  if(f.startsWith('SRC:')){
+    const sr=srcList().find(x=>x.id===f.slice(4)); if(!sr) return;
+    goAdd('income',sr.name);
+    const recv=sr.spendNext?addM(ymV,-1):ymV, target=parse(recv+'-'+pad(Math.min(sr.day||1,daysIn(recv))));
+    $('date').value=iso(target>t?t:target);
+    if(sr.kind==='fixed') $('amount').value=sr.amount||'';
+    drawCats(); buildForMonth(ymV); if(sr.forPrev){buildWorkMonth(addM(recv,-1));drawUnitInputs()}
+    const fu=$('unitsWrap').querySelector('input'); (sr.deductions?$('deduct'):fu||$('amount')).focus();
+  }
 });
 $('prevM').addEventListener('click',()=>{viewM--;if(viewM<0){viewM=11;viewY--}pickedDay=null;render()});
 $('nextM').addEventListener('click',()=>{viewM++;if(viewM>11){viewM=0;viewY++}pickedDay=null;render()});
@@ -766,7 +862,7 @@ function render(){
   const weekSpent=entries.filter(e=>e.type==='expense'&&e.date>=iso(ws)&&e.date<=iso(we)).reduce((a,e)=>a+Number(e.amount),0);
   const todaySpent=entries.filter(e=>e.type==='expense'&&e.date===todayIso).reduce((a,e)=>a+Number(e.amount),0);
   const dflow=debtFlow(ym);
-  const left=income-spent-saved+withdrawn+dflow;
+  PSC=payStarts(); const lg=ledger(ym,PSC); const left=lg.left;
   const avg=daysElapsed?spent/daysElapsed:0;
 
   const t=[];
@@ -774,24 +870,28 @@ function render(){
     t.push(['out',L('صرفت النهارده','Spent today'),todaySpent,avg?(todaySpent>avg*1.3?L('أعلى من متوسطك','Above your average'):todaySpent<avg*.7?L('أقل من متوسطك','Below your average'):L('قريب من متوسطك','Near your average')):'']);
     t.push(['out',L('صرفت الأسبوع ده','Spent this week'),weekSpent,L('من السبت ','Since Sat ')+ws.getDate()+' '+MO(ws.getMonth())]);
   }
-  t.push(['out',L('صرفت الشهر ده','Spent this month'),spent,daysElapsed?L('متوسط ','Avg ')+money(avg)+L(' في اليوم',' a day'):'']);
-  const salM=incomeList.filter(e=>e.cat===SAL).reduce((a,e)=>a+Number(e.amount),0);
-  const comM=incomeList.filter(e=>e.cat===COM).reduce((a,e)=>a+Number(e.amount),0);
-  t.push(['in',L('دخلّي الشهر ده','Income this month'),income,salM||comM?L('مرتب ','Salary ')+money(salM)+L(' + كوميشن ',' + commission ')+money(comM)+(income-salM-comM>0?L(' + تاني ',' + other ')+money(income-salM-comM):''):(isFuture||!(settings.salary>0)?'':L('المرتب لسه متسجلش','Salary not logged yet'))]);
-  t.push(['sv',L('حوّشت الشهر ده','Saved this month'),saved-withdrawn,withdrawn?L('بعد سحب ','After withdrawing ')+money(withdrawn):'']);
-  t.push(['',L('الباقي معايا','Left with me'),left,L('الدخل − المصروف − الحوشة','Income − spending − savings')+(dflow?(dflow>0?L(' + سلف ',' + loans '):L(' − سلف ',' − loans '))+money(Math.abs(dflow)):'')]);
+  // Spending that belongs to this month's money, including days after payday at the end of the previous month.
+  const monthB=entries.filter(e=>e.type==='expense'&&e.date&&budgetOf(e,PSC)===ym);
+  const earlyList=entries.filter(e=>(e.type==='expense'||e.type==='save')&&e.date&&e.date.slice(0,7)<ym&&budgetOf(e,PSC)===ym);
+  const startDay=PSC[ym];
+  t.push(['out',L('صرفت من فلوس الشهر ده','Spent from this month’s money'),lg.out,[startDay?L('الشهر بدأ يوم القبض ','Started on payday ')+dFmt(startDay):'',daysElapsed?L('متوسط ','Avg ')+money(avg)+L(' في اليوم',' a day'):''].filter(Boolean).join(' · ')]);
+  const byInc={};incomeList.forEach(e=>byInc[e.cat]=(byInc[e.cat]||0)+Number(e.amount));
+  const incParts=Object.entries(byInc).sort((a,b)=>b[1]-a[1]).map(([c,v])=>catName(c)+' '+money(v));
+  t.push(['in',L('دخلّي الشهر ده','Income this month'),income,incParts.length?incParts.slice(0,3).join(' + ')+(incParts.length>3?' …':''):(isFuture||!srcList().length?'':L('لسه مفيش دخل متسجل','No income logged yet'))]);
+  t.push(['sv',L('حوّشت من فلوس الشهر ده','Saved from this month’s money'),lg.sv,(()=>{const g=entries.filter(e=>e.type==='save'&&e.cat===GAM&&budgetOf(e,PSC)===ym);const gs=g.reduce((a,e)=>a+(+e.amount||0),0);return gs?L('منهم جمعية ','Gamʿeya ')+money(gs)+(g.length>1?L(' ('+g.length+' أقساط)',' ('+g.length+' installments)'):''):''})()]);
+  t.push(['',L('الباقي معايا','Left with me'),left,(lg.carry?L('مترحّل من '+MO((viewM+11)%12)+' ','Carried from '+MO((viewM+11)%12)+' ')+(lg.carry<0?'−':'')+money(Math.abs(lg.carry))+' + ':'')+L('دخل ','income ')+money(lg.inc)+L(' − مصروف ',' − spending ')+money(lg.out)+(lg.sv?L(' − حوشة ',' − savings ')+money(lg.sv):'')+(lg.df?(lg.df>0?L(' + سلف ',' + loans '):L(' − سلف ',' − loans '))+money(Math.abs(lg.df)):'')]);
   $('tiles').innerHTML=t.map(([c,k,v,s])=>'<div class="tile '+c+'"><span class="k">'+k+'</span><span class="v">'+(v<0?'−':'')+money(Math.abs(v))+'<span class="cur">'+CUR()+'</span></span><span class="s">'+esc(s)+'</span></div>').join('');
 
   drawToday(todaySpent,weekSpent);
   drawDaily(byDay,dim,daysElapsed,avg,isCurrent?today.getDate():0,ym,month);
   drawConsistency(byDay,daysElapsed,avg);
-  drawCats2(month,spent);
+  drawCats2(monthB,lg.out);
   drawWeeks(byDay,dim,daysElapsed);
-  drawFlow(income,spent,saved-withdrawn,incomeList);
+  drawFlow(income,lg.out,lg.sv,incomeList);
   drawFixed(incomeList,isCurrent,isFuture,today);
-  drawSavings(saved,withdrawn,income);
-  drawGive(month,income);
-  drawLog(month);
+  drawSavings(lg.sv,0,income);
+  drawGive(monthB,income);
+  drawLog(month,earlyList);
   drawWishes();
   drawDebts();
 }
@@ -799,19 +899,19 @@ function render(){
 function curStats(){
   const t=new Date(), ym=ymOf(t), dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate(), el=t.getDate();
   const mo=entries.filter(e=>(e.date||'').slice(0,7)===ym);
-  const inc=entries.filter(e=>e.type==='income'&&(e.budgetMonth||(e.date||'').slice(0,7))===ym).reduce((a,e)=>a+Number(e.amount),0);
-  const sp=sum(mo,'expense'), sv=sum(mo,'save')-sum(mo,'withdraw');
+  const PS=payStarts(), lg=ledger(ym,PS);
+  const inc=lg.inc, sp=lg.out, sv=lg.sv, carry=lg.carry;
   const days=new Set(mo.filter(e=>e.type==='expense').map(e=>e.date)).size;
-  const avg=el?sp/el:0, rest=el>=3?avg*(dim-el):0;
+  const avg=el?sum(mo,'expense')/el:0, rest=el>=3?avg*(dim-el):0;
   const bal=entries.reduce((a,e)=>a+(isGam(e)?0:e.type==='save'?+e.amount:e.type==='withdraw'?-e.amount:0),0);
-  const gi=gamInfo(ym), gm=mo.filter(isGam); let gamAdj=0;
+  const gi=gamInfo(ym), gm=entries.filter(e=>isGam(e)&&budgetOf(e,PS)===ym); let gamAdj=0;
   if(gi.active&&!gm.some(e=>e.type==='save')) gamAdj-=gi.g.monthly;
   if(gi.payoutHere&&!mo.some(e=>e.cat===GAM&&(e.type==='withdraw'||e.type==='income'))) gamAdj+=gi.payout;
-  const df=debtFlow(ym);
+  const df=lg.df;
   let bankAdj=0;
   debts.forEach(d=>{if(d.dir!=='bank'||remOf(d)<=0)return;const idx=mDiff(d.start||ym,ym);if(idx<0||idx>=(+d.months||0))return;
     if(!(d.payments||[]).some(p=>(p.date||'').slice(0,7)===ym)) bankAdj-=Math.min(+d.inst||0,remOf(d))});
-  return {ym,inc,sp,sv,rest,gamAdj,df,bankAdj,proj:inc-sp-rest-sv+gamAdj+df+bankAdj,bal,el,days,mName:MO(t.getMonth())};
+  return {ym,inc,sp,sv,carry,rest,gamAdj,df,bankAdj,proj:lg.left-rest+gamAdj+bankAdj,bal,el,days,mName:MO(t.getMonth())};
 }
 
 function drawToday(todaySpent,weekSpent){
@@ -826,7 +926,7 @@ function drawToday(todaySpent,weekSpent){
 }
 
 function itemHTML(e){
-  const notes=[e.deductions?L('إجمالي ','Gross ')+money(e.gross)+L(' − خصومات ',' − deductions ')+money(e.deductions):'',e.workMonth?L('عن زومات ','For zooms of ')+ymLabel(e.workMonth):'',zoomTxt(e),(e.budgetMonth&&e.budgetMonth!==(e.date||'').slice(0,7))?L('بيتصرف في ','Spent in ')+ymLabel(e.budgetMonth):'',esc(e.note||'')].filter(Boolean);
+  const notes=[e.deductions?L('إجمالي ','Gross ')+money(e.gross)+L(' − خصومات ',' − deductions ')+money(e.deductions):'',e.workMonth?L('عن شغل ','For work in ')+ymLabel(e.workMonth):'',unitsTxt(e),(e.budgetMonth&&e.budgetMonth!==(e.date||'').slice(0,7))?L('بيتصرف في ','Spent in ')+ymLabel(e.budgetMonth):'',((e.type==='expense'||e.type==='save')&&e.date&&budgetOf(e)!==e.date.slice(0,7))?L('من فلوس ','From ')+ymLabel(budgetOf(e))+L('',' money'):'',esc(e.note||'')].filter(Boolean);
   return '<div class="item"><span class="dot '+e.type+'"></span><div class="what"><div class="c">'+esc(catName(e.cat))+' <span class="muted" style="font-size:.78rem;font-weight:400">· '+typeName(e.type)+(e.method?' · '+esc(methName(e.method)):'')+'</span></div>'+(notes.length?'<div class="n">'+notes.join(' · ')+'</div>':'')+'</div>'+
     '<span class="val '+e.type+'">'+(e.type==='expense'||e.type==='save'?'−':'+')+money(e.amount)+'</span>'+
     '<span class="ops"><button type="button" class="ed" data-edit="'+esc(e.id)+'">'+L('تعديل','Edit')+'</button><button type="button" data-del="'+esc(e.id)+'" class="'+(armedDel===e.id?'sure':'')+'">'+(armedDel===e.id?L('متأكدة؟','Sure?'):L('مسح','Delete'))+'</button></span></div>';
@@ -903,30 +1003,36 @@ function drawFlow(income,spent,netSaved,incomeList){
   $('flowBars').innerHTML=row(L('دخل','Income'),income,'--in')+row(L('مصروف','Spending'),spent,'--out')+row(L('حوشة','Savings'),netSaved,'--save');
   const by={};incomeList.forEach(e=>by[e.cat]=(by[e.cat]||0)+Number(e.amount));
   const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]);
-  $('incomeBars').innerHTML=rows.length?'<h3 style="font-size:.9rem;font-weight:600">'+L('الدخل جه منين','Where income came from')+'</h3>'+rows.map(([c,v])=>'<div class="bar"><span>'+esc(catName(c))+'</span><div class="track"><div class="fill" style="background:var(--in);width:'+(v/rows[0][1]*100)+'%"></div></div><span class="amt2">'+money(v)+'</span></div>').join(''):'<div class="empty">'+L('سجّلي المرتب والكوميشن عشان تشوفي الفرق بين اللي داخل واللي خارج.','Log your salary and commission to compare money in and out.')+'</div>';
+  $('incomeBars').innerHTML=rows.length?'<h3 style="font-size:.9rem;font-weight:600">'+L('الدخل جه منين','Where income came from')+'</h3>'+rows.map(([c,v])=>'<div class="bar"><span>'+esc(catName(c))+'</span><div class="track"><div class="fill" style="background:var(--in);width:'+(v/rows[0][1]*100)+'%"></div></div><span class="amt2">'+money(v)+'</span></div>').join(''):'<div class="empty">'+L('سجّلي دخلك عشان تشوفي الفرق بين اللي داخل واللي خارج.','Log your income to compare money in and out.')+'</div>';
 }
 
 function drawFixed(incomeList,isCurrent,isFuture,today){
   const mName=MO(viewM), btn=(f,txt)=>'<button type="button" data-fill="'+esc(f)+'">'+txt+'</button>';
-  const sal=incomeList.filter(e=>e.cat===SAL), com=incomeList.filter(e=>e.cat===COM);
   let h='';
-  if(sal.length){
-    const net=sal.reduce((a,e)=>a+Number(e.amount),0), ded=sal.reduce((a,e)=>a+(Number(e.deductions)||0),0), gross=sal.reduce((a,e)=>a+(Number(e.gross)||Number(e.amount)),0);
-    h+='<div class="fx"><div><div class="t">'+L('مرتب '+mName+' اتسجّل',mName+' salary logged')+'</div><div class="sub">'+L('اتقبض ','Received ')+sal.map(e=>dFmt(e.date)).join(L('، ',', '))+' · '+M(gross)+L(' − خصومات ',' − deductions ')+M(ded)+(gross?' ('+Math.round(ded/gross*100)+'%)':'')+'</div></div><span style="font-weight:600;color:var(--in)"><span class="num">'+money(net)+'</span> '+L('صافي','net')+'</span></div>';
-  } else if(settings.salary>0){
-    const sd=settings.salaryDay||25, exp=new Date(viewY,viewM-1,Math.min(sd,new Date(viewY,viewM,0).getDate())), pm=MO(exp.getMonth());
-    if(exp<=today) h+='<div class="fx todo"><div><div class="t">'+L('مرتب '+mName+' لسه متسجلش',mName+' salary not logged yet')+'</div><div class="sub">'+M(settings.salary||0)+L(' قبل الخصومات · بيتقبض من '+sd+' '+pm+' ويتصرف في '+mName,' before deductions · paid from '+sd+' '+pm+', spent in '+mName)+'</div></div>'+btn(SAL,L('سجّليه','Log it'))+'</div>';
-    else h+='<div class="fx"><div><div class="t">'+L('فلوس '+mName,mName+' money')+'</div><div class="sub">'+L('المرتب متوقع يتقبض من '+sd+' '+pm+'، ','Salary expected from '+sd+' '+pm+', ')+M(settings.salary||0)+L(' قبل الخصومات',' before deductions')+'</div></div></div>';
-  }
-  if(com.length){
-    const tot=com.reduce((a,e)=>a+Number(e.amount),0), z=com.reduce((a,e)=>a+(Number(e.zooms)||0),0);
-    const wms=[...new Set(com.map(e=>e.workMonth).filter(Boolean))].map(v=>MO(+v.slice(5)-1)).join(L(' و ',' & '));
-    const rec=com.map(e=>dFmt(e.date)+(parse(e.date).getDate()>15?L(' (متأخر)',' (late)'):'')).join(L('، ',', '));
-    h+='<div class="fx"><div><div class="t">'+L('كوميشن ','Commission ')+mName+(wms?' <span class="sub">· '+L('عن زومات ','for zooms of ')+wms+'</span>':'')+'</div><div class="sub">'+L('اتقبض ','Received ')+rec+'</div><div class="sub">'+(z?com.map(zoomTxt).filter(Boolean).join(L('، ',', '))+L(' · حوالي ',' · about ')+M(tot/z)+L(' للزوم',' per zoom'):L('سجّلي عدد الزومات عشان تعرفي الزوم بيجيب كام','Log zoom counts to see what a zoom earns'))+'</div></div><span class="num" style="font-weight:600;color:var(--in)">'+money(tot)+'</span></div>';
-  } else if(!isFuture&&hasZooms()){
-    const early=isCurrent&&today.getDate()<=15, pm=MO((viewM+11)%12);
-    h+='<div class="fx'+(early?'':' todo')+'"><div><div class="t">'+L('كوميشن ','Commission ')+mName+' <span class="sub">· '+L('عن زومات ','for zooms of ')+pm+'</span></div><div class="sub">'+(early?L('بيتقبض من 10 لـ 15 '+mName+'، ومتغير حسب الزومات','Paid 10–15 '+mName+', varies with zooms'):L('لسه متسجلش. لو اتقبض متأخر سجّليه بيومه الحقيقي','Not logged yet. If it came late, log the real day'))+'</div></div>'+btn(COM,L('سجّليه','Log it'))+'</div>';
-  }
+  const ymS=viewY+'-'+pad(viewM+1);
+  srcList().forEach(sr=>{
+    const got=incomeList.filter(e=>e.cat===sr.name);
+    const recv=sr.spendNext?addM(ymS,-1):ymS, rm=MO(+recv.slice(5)-1);
+    const d1=Math.min(sr.day||1,daysIn(recv)), d2=Math.min(sr.dayTo||sr.day||1,daysIn(recv));
+    const lastDue=parse(recv+'-'+pad(Math.max(d1,d2)));
+    const when=(sr.dayTo&&sr.dayTo!==sr.day?L('من '+d1+' لـ '+d2+' '+rm,d1+'–'+d2+' '+rm):d1+' '+rm);
+    const work=sr.forPrev?' <span class="sub">· '+L('عن شغل ','for work in ')+MO(+addM(recv,-1).slice(5)-1)+'</span>':'';
+    if(got.length){
+      const net=got.reduce((a,e)=>a+Number(e.amount),0), ded=got.reduce((a,e)=>a+(Number(e.deductions)||0),0), gross=got.reduce((a,e)=>a+(Number(e.gross)||Number(e.amount)),0);
+      const cnt=got.reduce((a,e)=>a+(Number(e.zooms)||0),0);
+      const rec=got.map(e=>dFmt(e.date)+(parse(e.date)>lastDue?L(' (متأخر)',' (late)'):'')).join(L('، ',', '));
+      let sub='<div class="sub">'+L('اتقبض ','Received ')+rec+'</div>';
+      if(sr.deductions) sub+='<div class="sub">'+M(gross)+L(' − خصومات ',' − deductions ')+M(ded)+(gross?' ('+Math.round(ded/gross*100)+'%)':'')+'</div>';
+      if(sr.kind==='units') sub+='<div class="sub">'+(cnt?got.map(unitsTxt).filter(Boolean).join(L('، ',', '))+L(' · حوالي ',' · about ')+M(gross/cnt)+L(' للواحد',' each'):L('سجّلي العدد عشان تعرفي الواحد بيجيب كام','Log the counts to see what each one earns'))+'</div>';
+      h+='<div class="fx"><div><div class="t">'+esc(catName(sr.name))+' · '+mName+work+'</div>'+sub+'</div><span style="font-weight:600;color:var(--in)"><span class="num">'+money(net)+'</span>'+(sr.deductions?' '+L('صافي','net'):'')+'</span></div>';
+    } else {
+      const due=lastDue<=today, firstDue=parse(recv+'-'+pad(d1));
+      const amt=sr.kind==='fixed'&&sr.amount?M(sr.amount)+(sr.deductions?L(' قبل الخصومات',' before deductions'):'')+' · ':'';
+      const spend=sr.spendNext?L(' · ويتصرف في '+mName,' · spent in '+mName):'';
+      if(due) h+='<div class="fx todo"><div><div class="t">'+esc(catName(sr.name))+' · '+mName+work+'</div><div class="sub">'+amt+L('لسه متسجلش. بيتقبض ','Not logged yet. Paid ')+when+spend+'</div></div>'+btn('SRC:'+sr.id,L('سجّليه','Log it'))+'</div>';
+      else h+='<div class="fx"><div><div class="t">'+esc(catName(sr.name))+' · '+mName+work+'</div><div class="sub">'+amt+L('متوقع يتقبض ','Expected ')+when+spend+'</div></div>'+(firstDue<=today?btn('SRC:'+sr.id,L('سجّليه','Log it')):'')+'</div>';
+    }
+  });
   const ymV=viewY+'-'+pad(viewM+1), gi=gamInfo(ymV), real=entries.filter(e=>(e.date||'').slice(0,7)===ymV&&e.cat===GAM);
   const no=L('رقم '+gi.idx+' من '+gi.g.months,'No. '+gi.idx+' of '+gi.g.months);
   if(gi.active){
@@ -949,14 +1055,12 @@ function drawFixed(incomeList,isCurrent,isFuture,today){
       :'<div class="fx todo"><div><div class="t">'+esc(d.person)+L(' · القسط لسه متدفعش',' · installment not paid yet')+'</div><div class="sub">'+M(d.inst)+' · '+no+'</div></div>'+btn('BANK:'+d.id,L('دفعته','Paid it'))+'</div>');
   });
   $('fixedBox').innerHTML=h;
-  const ae=document.activeElement&&document.activeElement.id;
-  if(!['salaryAmt','salaryDay','rateI','rateD'].includes(ae)){$('salaryAmt').value=settings.salary||'';$('salaryDay').value=settings.salaryDay||25;$('rateI').value=settings.rateIADB||'';$('rateD').value=settings.rateDLC||''}
-  $('rateI').closest('label').hidden=!(settings.rateIADB>0);$('rateD').closest('label').hidden=!(settings.rateDLC>0);
+  drawSources();
 }
 
 function drawSavings(savedM,withM,incomeM){
   const all=entries.reduce((a,e)=>a+(isGam(e)?0:e.type==='save'?+e.amount:e.type==='withdraw'?-e.amount:0),0);
-  const gm=entries.filter(e=>isGam(e)&&(e.date||'').slice(0,7)===viewY+'-'+pad(viewM+1)).reduce((a,e)=>a+(e.type==='save'?+e.amount:-e.amount),0);
+  const gm=entries.filter(e=>isGam(e)&&budgetOf(e)===viewY+'-'+pad(viewM+1)).reduce((a,e)=>a+(e.type==='save'?+e.amount:-e.amount),0);
   const net=savedM-withM-gm;
   $('saveRate').textContent=incomeM?L('حوّشتي '+Math.round(net/incomeM*100)+'% من دخل الشهر','Saved '+Math.round(net/incomeM*100)+'% of this month’s income'):'';
   let h='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:.85rem">'+L('رصيد الحوشة كله','Total savings')+'</span><span class="num" style="font-size:1.5rem;font-weight:600;color:var(--save)">'+money(all)+' <span class="cur">'+CUR()+'</span></span></div>';
@@ -994,12 +1098,14 @@ function drawGive(month,income){
   if(ae!=='giveGoal'&&ae!=='giveMode'){$('giveGoal').value=settings.giveGoal||'';$('giveMode').value=settings.giveMode||'pct'}
 }
 
-function drawLog(month){
-  $('logCount').textContent=month.length?month.length+L(' حركة',' entries'):'';
-  if(!month.length){
+function drawLog(month,early){
+  early=early||[];
+  $('logCount').textContent=(month.length+early.length)?(month.length+early.length)+L(' حركة',' entries'):'';
+  if(!month.length&&!early.length){
     $('log').innerHTML=mode==='loading'?'<div class="empty">'+L('بيحمّل…','Loading…')+'</div>':'<div class="empty">'+L('مفيش حركات في '+MO(viewM)+' لسه.','No entries in '+MO(viewM)+' yet.')+'</div>';return}
   const days={};month.forEach(e=>(days[e.date]=days[e.date]||[]).push(e));
-  $('log').innerHTML=Object.keys(days).sort().reverse().map(k=>{
+  const earlyH=early.length?'<div class="day"><div class="dayhead"><strong>'+L('من فلوس '+MO(viewM)+' · بعد يوم القبض','From '+MO(viewM)+' money · after payday')+'</strong><span>'+L('صرفت ','Spent ')+M(early.reduce((a,e)=>a+(e.type==='expense'?+e.amount:0),0))+' '+CUR()+'</span></div>'+early.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0)).map(e=>itemHTML(e).replace('<div class="what">','<div class="what"><div class="n">'+WD(parse(e.date).getDay())+' '+dFmt(e.date)+'</div>')).join('')+'</div>':'';
+  $('log').innerHTML=earlyH+Object.keys(days).sort().reverse().map(k=>{
     const list=days[k].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     const out=list.reduce((a,e)=>a+(e.type==='expense'?+e.amount:0),0), d=parse(k);
     return '<div class="day"><div class="dayhead"><strong>'+WD(d.getDay())+' '+d.getDate()+' '+MO(d.getMonth())+'</strong><span>'+L('صرفت ','Spent ')+M(out)+' '+CUR()+'</span></div>'+list.map(itemHTML).join('')+'</div>'}).join('');
@@ -1008,11 +1114,11 @@ async function onListClick(e){
   const ed=e.target.closest('[data-edit]'),dl=e.target.closest('[data-del]');
   if(ed){const x=entries.find(v=>v.id===ed.dataset.edit);if(!x)return;
     resetForm();editId=x.id;selType=x.type;selCat=x.cat;$('t-'+x.type).checked=true;
-    $('amount').value=x.gross||x.amount;$('deduct').value=x.deductions||'';$('zIADB').value=(x.zoomsBy&&x.zoomsBy.IADB)||'';$('zDLC').value=(x.zoomsBy&&x.zoomsBy.DLC)||'';$('date').value=x.date;
+    $('amount').value=x.gross||x.amount;$('deduct').value=x.deductions||'';$('date').value=x.date;
     $('forMonth').innerHTML='';$('workMonth').innerHTML='';
     drawCats();
-    if(x.type==='income'&&x.cat===SAL)buildForMonth(x.budgetMonth||x.date.slice(0,7));
-    if(x.type==='income'&&x.cat===COM){buildWorkMonth(x.workMonth);toggleDLC()}
+    if(x.type==='income'&&srcByName(x.cat)){buildForMonth(x.budgetMonth||x.date.slice(0,7));if(x.workMonth)buildWorkMonth(x.workMonth);drawUnitInputs(Object.assign({},x.units||x.zoomsBy||{}))}
+    if(x.type==='expense'||x.type==='save') buildFromMonth(x.fromMonth||'');
     $('note').value=x.note||'';$('method').value=x.method||'كاش';
     $('cancelEdit').hidden=false;$('submitBtn').textContent=L('احفظ التعديل','Save changes');switchTab('add');$('amount').focus();return}
   if(dl){const id=dl.dataset.del;
@@ -1021,6 +1127,67 @@ async function onListClick(e){
 }
 $('log').addEventListener('click',onListClick);
 $('todayList').addEventListener('click',onListClick);
+
+/* ---------- income sources editor ---------- */
+let srcEdit=null, srcDelArmed=false;
+const KIND_SRC=k=>({fixed:L('ثابت','Fixed'),variable:L('متغير','Varies'),units:L('بالعدد','By count')})[k]||'';
+function drawSources(){
+  const list=srcList();
+  $('srcList').innerHTML=list.length?list.map(sr=>{
+    const when=sr.dayTo&&sr.dayTo!==sr.day?L('من '+sr.day+' لـ '+sr.dayTo,'days '+sr.day+'–'+sr.dayTo):L('يوم '+(sr.day||1),'day '+(sr.day||1));
+    const bits=[KIND_SRC(sr.kind),sr.kind==='fixed'&&sr.amount?money(sr.amount)+' '+CUR():'',sr.kind==='units'?(sr.units||[]).map(u=>esc(u.name)+' '+money(u.rate)+(u.until?L(' لحد ',' until ')+ymLabel(u.until):'')).join('، '):'',L('بيتقبض ','paid ')+when,sr.spendNext?L('بيتصرف الشهر اللي بعده','spent the month after'):'',sr.forPrev?L('عن شغل الشهر اللي قبله','for the previous month’s work'):'',sr.deductions?L('عليه خصومات','has deductions'):''].filter(Boolean).join(' · ');
+    return '<div class="srcrow"><div><div class="t">'+esc(catName(sr.name))+'</div><div class="sub">'+bits+'</div></div><button type="button" data-src="'+esc(sr.id)+'">'+L('تعديل','Edit')+'</button></div>'}).join('')
+    :'<div class="empty">'+L('ضيفي مصادر دخلك (المرتب، أي كوميشن، شغل حر…) عشان الدفتر يفكّرك بيها كل شهر ويعرف بتتصرف إمتى.','Add your income sources (salary, commission, freelance…) so the book reminds you each month and knows when each is spent.')+'</div>';
+}
+function unitRowHTML(u){u=u||{};return '<div class="unitrow" data-key="'+esc(u.key||'')+'"><label class="field"><span>'+L('الاسم','Name')+'</span><input class="un" maxlength="20" value="'+esc(u.name||'')+'" placeholder="'+L('مثلاً: IADB','e.g. Course A')+'"></label><label class="field"><span>'+L('السعر للواحد','Price each')+'</span><input class="ur" inputmode="decimal" value="'+esc(u.rate||'')+'" style="direction:ltr;text-align:right"></label><label class="field"><span>'+L('لحد شهر (اختياري)','Until month (optional)')+'</span><input class="uu" type="month" value="'+esc(u.until||'')+'"></label><button type="button" class="urm" aria-label="'+L('شيلي','Remove')+'">×</button></div>'}
+function srcFormUI(){
+  const k=$('srcKind').value; $('srcAmtWrap').hidden=k!=='fixed'; $('srcUnitsBox').hidden=k!=='units';
+  if(k==='units'&&!$('srcUnits').children.length) $('srcUnits').innerHTML=unitRowHTML();
+  $('srcSave').textContent=srcEdit?L('احفظي التعديل','Save changes'):L('ضيفي المصدر','Add source');
+  $('srcDel').hidden=!srcEdit; $('srcDel').textContent=srcDelArmed?L('متأكدة؟ دوسي تاني','Sure? Tap again'):L('مسح المصدر','Delete source');
+}
+function openSrcForm(sr){
+  srcEdit=sr?sr.id:null; srcDelArmed=false; sr=sr||{kind:'fixed',day:1,spendNext:false,forPrev:false,deductions:false,units:[]};
+  $('srcName').value=sr.name||''; $('srcKind').value=sr.kind||'fixed'; $('srcAmt').value=sr.amount||''; $('srcDay').value=sr.day||''; $('srcDayTo').value=sr.dayTo||'';
+  $('srcSpend').value=sr.spendNext?'next':'same'; $('srcWork').value=sr.forPrev?'prev':'same'; $('srcDed').checked=!!sr.deductions; $('srcUnitName').value=sr.unitName||'';
+  $('srcUnits').innerHTML=(sr.units||[]).map(unitRowHTML).join('');
+  $('srcForm').hidden=false; $('srcAdd').hidden=true; srcFormUI(); $('srcName').focus();
+}
+function closeSrcForm(){srcEdit=null;srcDelArmed=false;$('srcForm').hidden=true;$('srcAdd').hidden=false}
+$('srcAdd').addEventListener('click',()=>openSrcForm(null));
+$('srcCancel').addEventListener('click',closeSrcForm);
+$('srcKind').addEventListener('change',srcFormUI);
+$('srcUnitAdd').addEventListener('click',()=>{$('srcUnits').insertAdjacentHTML('beforeend',unitRowHTML());$('srcUnits').lastElementChild.querySelector('.un').focus()});
+$('srcUnits').addEventListener('click',e=>{const b=e.target.closest('.urm');if(b)b.closest('.unitrow').remove()});
+$('srcList').addEventListener('click',e=>{const b=e.target.closest('[data-src]');if(!b)return;const sr=srcList().find(x=>x.id===b.dataset.src);if(sr)openSrcForm(sr)});
+$('srcForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=$('srcName').value.trim(), kind=$('srcKind').value, list=srcList().slice();
+  if(!name){msg(L('اكتبي اسم المصدر.','Enter a name for the source.'),true);$('srcName').focus();return}
+  if(list.some(x=>x.name===name&&x.id!==srcEdit)){msg(L('فيه مصدر بنفس الاسم.','A source with this name already exists.'),true);return}
+  const day=Math.min(Math.max(parseInt(num($('srcDay').value))||1,1),31), dayTo=parseInt(num($('srcDayTo').value))||0;
+  const units=[];
+  if(kind==='units'){
+    $('srcUnits').querySelectorAll('.unitrow').forEach((r,i)=>{const nm=r.querySelector('.un').value.trim(), rate=num(r.querySelector('.ur').value);if(nm&&rate>0)units.push({key:r.dataset.key||('u'+Date.now().toString(36)+i),name:nm,rate,until:r.querySelector('.uu').value||''})});
+    if(!units.length){msg(L('ضيفي سعر واحد على الأقل (اسم وسعر).','Add at least one price (name and price).'),true);return}
+  }
+  const sr={id:srcEdit||('s'+Date.now().toString(36)),name,kind,amount:kind==='fixed'?(num($('srcAmt').value)||0):0,day,dayTo:dayTo>=day&&dayTo<=31?dayTo:0,spendNext:$('srcSpend').value==='next',forPrev:$('srcWork').value==='prev',deductions:$('srcDed').checked,unitName:$('srcUnitName').value.trim(),units};
+  const old=srcEdit?list.find(x=>x.id===srcEdit):null;
+  const next=old?list.map(x=>x.id===srcEdit?sr:x):[...list,sr];
+  try{
+    await putSettings({sources:next});
+    if(old&&old.name!==name){ // keep past income linked to the renamed source
+      for(const en of entries.filter(x=>x.type==='income'&&x.cat===old.name)){const {id,...rest}=en;rest.cat=name;await putEntry(id,rest)}
+    }
+    closeSrcForm();render();drawCats();msg(old?L('اتعدّل.','Updated.'):L('اتضاف المصدر.','Source added.'));
+  }catch(err){msg(L('ماتحفظش. جرّبي تاني.','Not saved. Try again.'),true)}
+});
+$('srcDel').addEventListener('click',async()=>{
+  if(!srcEdit) return;
+  if(!srcDelArmed){srcDelArmed=true;srcFormUI();return}
+  try{await putSettings({sources:srcList().filter(x=>x.id!==srcEdit)});closeSrcForm();render();drawCats();msg(L('اتمسح المصدر. الدخل اللي اتسجل منه قبل كده لسه موجود.','Source deleted. Income already logged from it stays.'))}
+  catch(err){msg(L('ماتمسحش.','Not deleted.'),true)}
+});
 
 /* ---------- wishes ---------- */
 const wishCost=w=>Number(w.cost)||0;
@@ -1032,7 +1199,7 @@ function drawWishes(){
   $('wishSum').innerHTML=open.length?open.length+L(' حاجة · ',' items · ')+M(total)+' '+CUR():'';
   const avail=Math.max(0,s.proj);
   const parts=[L('دخل ','Income ')+money(s.inc),L('صرفتي ','spent ')+money(s.sp)];
-  let sub=parts.join(' − ')+(s.rest?L(' − متوقع ',' − expected ')+money(s.rest)+L(' لآخر الشهر',' to month end'):'')+(s.sv?L(' − حوشة وجمعية ',' − savings & gamʿeya ')+money(s.sv):'')+(s.gamAdj<0?L(' − قسط جمعية ',' − gamʿeya installment ')+money(-s.gamAdj):s.gamAdj>0?L(' + قبض جمعية ',' + gamʿeya payout ')+money(s.gamAdj):'')+(s.df?(s.df>0?L(' + سلف ',' + loans '):L(' − سلف ',' − loans '))+money(Math.abs(s.df)):'')+(s.bankAdj?L(' − أقساط بنك ',' − bank installments ')+money(-s.bankAdj):'');
+  let sub=(s.carry?L('مترحّل ','Carried ')+(s.carry<0?'−':'')+money(Math.abs(s.carry))+' + ':'')+parts.join(' − ')+(s.rest?L(' − متوقع ',' − expected ')+money(s.rest)+L(' لآخر الشهر',' to month end'):'')+(s.sv?L(' − حوشة وجمعية ',' − savings & gamʿeya ')+money(s.sv):'')+(s.gamAdj<0?L(' − قسط جمعية ',' − gamʿeya installment ')+money(-s.gamAdj):s.gamAdj>0?L(' + قبض جمعية ',' + gamʿeya payout ')+money(s.gamAdj):'')+(s.df?(s.df>0?L(' + سلف ',' + loans '):L(' − سلف ',' − loans '))+money(Math.abs(s.df)):'')+(s.bankAdj?L(' − أقساط بنك ',' − bank installments ')+money(-s.bankAdj):'');
   $('wishBudget').innerHTML=
     '<div class="wb"><span class="k">'+L('متوقع يفضل معاكي آخر ','Expected left at end of ')+s.mName+'</span><span class="v" style="color:var('+(s.proj>=0?'--in':'--out')+')">'+(s.proj<0?'−':'')+money(Math.abs(s.proj))+'</span><span class="s">'+sub+'</span></div>'+
     '<div class="wb"><span class="k">'+L('رصيد الحوشة','Savings balance')+'</span><span class="v" style="color:var(--save)">'+money(s.bal)+'</span><span class="s">'+L('لو اضطريتي تسحبي منها','If you need to dip into it')+'</span></div>'+
@@ -1262,9 +1429,15 @@ $('bkCopy').addEventListener('click',()=>{
 $('bkRestore').addEventListener('click',()=>{
   let d;try{d=JSON.parse($('bkText').value)}catch(e){d=null}
   if(!d||!Array.isArray(d.entries)){msg(L('النص ده مش نسخة احتياطية من الدفتر.','That text is not a backup of this book.'),true);return}
-  if(!restoreArmed){restoreArmed=true;$('bkRestore').textContent=L('متأكدة؟ هتحل مكان الدفتر الحالي','Sure? It replaces the current book');return}
-  restoreArmed=false;entries=d.entries.map((x,i)=>x.id?x:Object.assign({id:'r'+Date.now()+i},x));wishes=d.wishes||[];debts=d.debts||[];settings=Object.assign({},DEFAULTS,d.settings||{});
-  saveLocal();render();$('bkText').value='';$('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text');msg(L('اترجعت ','Restored ')+entries.length+L(' حركة.',' entries.'));
+  if(!restoreArmed){restoreArmed=true;$('bkRestore').textContent=L('متأكدة؟ الحركات اللي مش موجودة هتتضاف','Sure? Missing entries will be added');return}
+  restoreArmed=false;
+  // Merge, never replace: anything already in this book stays; only entries it does not have yet are added.
+  const mergeById=(cur,inc)=>{const ids=new Set(cur.map(x=>x.id));const out=cur.slice();let n=0;(inc||[]).forEach((x,i)=>{const y=x.id?x:Object.assign({id:'r'+Date.now()+i},x);if(!ids.has(y.id)){out.push(y);ids.add(y.id);n++}});return [out,n]};
+  const [ne,added]=mergeById(entries,d.entries);entries=ne;wishes=mergeById(wishes,d.wishes)[0];debts=mergeById(debts,d.debts)[0];
+  const mine={};Object.keys(settings).forEach(k=>{if(JSON.stringify(settings[k])!==JSON.stringify(DEFAULTS[k])&&!(Array.isArray(settings[k])&&!settings[k].length))mine[k]=settings[k]});
+  settings=migrateSettings(Object.assign({},DEFAULTS,migrateSettings(Object.assign({},d.settings||{})),mine));
+  saveLocal();render();$('bkText').value='';$('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text');
+  msg(added?L('اتضاف '+added+' حركة، والدفتر فيه دلوقتي '+entries.length+' حركة.','Added '+added+' entries; the book now has '+entries.length+'.'):L('كل الحركات دي موجودة خلاص.','All of these entries are already here.'));
 });
 
 
