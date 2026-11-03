@@ -1117,10 +1117,10 @@ function drawLog(month,early){
     $('log').innerHTML=mode==='loading'?'<div class="empty">'+L('بيحمّل…','Loading…')+'</div>':'<div class="empty">'+L('مفيش حركات في '+MO(viewM)+' لسه.','No entries in '+MO(viewM)+' yet.')+'</div>';return}
   const days={};month.forEach(e=>(days[e.date]=days[e.date]||[]).push(e));
   const earlyH=early.length?'<div class="day"><div class="dayhead"><strong>'+L('من فلوس '+MO(viewM)+' · بعد يوم القبض','From '+MO(viewM)+' money · after payday')+'</strong><span>'+L('صرفت ','Spent ')+M(early.reduce((a,e)=>a+(e.type==='expense'?+e.amount:0),0))+' '+CUR()+'</span></div>'+early.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0)).map(e=>itemHTML(e).replace('<div class="what">','<div class="what"><div class="n">'+WD(parse(e.date).getDay())+' '+dFmt(e.date)+'</div>')).join('')+'</div>':'';
-  $('log').innerHTML=earlyH+Object.keys(days).sort().reverse().map(k=>{
+  $('log').innerHTML=Object.keys(days).sort().reverse().map(k=>{
     const list=days[k].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     const out=list.reduce((a,e)=>a+(e.type==='expense'?+e.amount:0),0), d=parse(k);
-    return '<div class="day"><div class="dayhead"><strong>'+WD(d.getDay())+' '+d.getDate()+' '+MO(d.getMonth())+'</strong><span>'+L('صرفت ','Spent ')+M(out)+' '+CUR()+'</span></div>'+list.map(itemHTML).join('')+'</div>'}).join('');
+    return '<div class="day"><div class="dayhead"><strong>'+WD(d.getDay())+' '+d.getDate()+' '+MO(d.getMonth())+'</strong><span>'+L('صرفت ','Spent ')+M(out)+' '+CUR()+'</span></div>'+list.map(itemHTML).join('')+'</div>'}).join('')+earlyH;
 }
 async function onListClick(e){
   const ed=e.target.closest('[data-edit]'),dl=e.target.closest('[data-del]');
