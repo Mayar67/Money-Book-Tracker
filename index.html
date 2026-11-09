@@ -42,10 +42,10 @@
   --bg:#1E252D; --paper:#272F39; --ink:#E7ECF1; --muted:#A1ACB8; --line:#38434F; --soft:#303A45;
   --accent:#8FB3D4; --accent-soft:#2E4256; --save:#D3949F; --save-soft:#4A3038}
 :root[data-pal="sage"]{
-  --bg:#E8EEE6; --paper:#F6F8F4; --ink:#22302A; --muted:#5E6E64; --line:#C9D5C8; --soft:#DCE5DA;
-  --accent:#5F7F63; --accent-soft:#D3E0D2;
-  --out:#B0533F; --out-soft:#F2DED8; --in:#2F7A55; --in-soft:#D6EBDF; --save:#8A5A73; --save-soft:#EADDE4;
-  --give:#9A7434; --give-soft:#F0E5CF; color-scheme:light}
+  --bg:#F4F8F2; --paper:#FFFFFF; --ink:#2A3A31; --muted:#6F7F74; --line:#DDE8DA; --soft:#EAF1E7;
+  --accent:#7FA383; --accent-soft:#E3EEE1;
+  --out:#C0644F; --out-soft:#FBEAE5; --in:#3E8A62; --in-soft:#E2F2E8; --save:#9A6B84; --save-soft:#F4E9EF;
+  --give:#A8833F; --give-soft:#F7EFDD; color-scheme:light}
 :root[data-pal="dusk"]{
   --bg:#221F2D; --paper:#2B2838; --ink:#ECE9F3; --muted:#AAA5BD; --line:#3F3A52; --soft:#353145;
   --accent:#A7B3E3; --accent-soft:#363D5E; --save:#D08A9B; --save-soft:#4A2E3A}
@@ -545,7 +545,7 @@ const addM=(ym,n)=>{const[y,m]=ym.split('-').map(Number);return ymOf(new Date(y,
 const GAM='جمعية', GIVE='صدقة';
 // Neutral defaults: each person's own numbers live only in their private settings doc, never in the page.
 const DEFAULTS={goalName:'',goalAmount:0,salary:0,salaryDay:25,rateIADB:0,rateDLC:0,dlcLast:'',giveGoal:0,giveMode:'pct',gam:null};
-const PALS=[{id:'navywine',ar:'كحلي وبرجندي',en:'Navy & burgundy',bg:'#282E40',ac:'#CF8A9A'},{id:'wine',ar:'برجندي هادي',en:'Soft burgundy',bg:'#33262D',ac:'#9DB7DC'},{id:'slate',ar:'أزرق رمادي',en:'Slate blue',bg:'#272F39',ac:'#8FB3D4'},{id:'sage',ar:'أخضر سيج فاتح',en:'Light sage',bg:'#E8EEE6',ac:'#5F7F63'},{id:'dusk',ar:'غروب بنفسجي',en:'Violet dusk',bg:'#2B2838',ac:'#A7B3E3'}];
+const PALS=[{id:'navywine',ar:'كحلي وبرجندي',en:'Navy & burgundy',bg:'#282E40',ac:'#CF8A9A'},{id:'wine',ar:'برجندي هادي',en:'Soft burgundy',bg:'#33262D',ac:'#9DB7DC'},{id:'slate',ar:'أزرق رمادي',en:'Slate blue',bg:'#272F39',ac:'#8FB3D4'},{id:'sage',ar:'أخضر سيج فاتح',en:'Light sage',bg:'#F4F8F2',ac:'#7FA383'},{id:'dusk',ar:'غروب بنفسجي',en:'Violet dusk',bg:'#2B2838',ac:'#A7B3E3'}];
 const PRIO=()=>lang==='en'?['Essential','Important','When I can']:['ضروري','مهم','لما أقدر'];
 const KIND=k=>({once:L('مرة واحدة','One-time'),monthly:L('اشتراك شهري','Monthly subscription'),yearly:L('اشتراك سنوي','Yearly subscription')})[k]||'';
 
