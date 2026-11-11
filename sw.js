@@ -1,6 +1,6 @@
 // Offline shell: the page, icons, fonts and the client library are cached.
 // Account data (Supabase) is never cached, so every device always reads the live book.
-const CACHE='daftar-v3';
+const CACHE='daftar-v4';
 const SHELL=['/','/index.html','/manifest.webmanifest','/icon-192.png','/icon-512.png','/apple-touch-icon.png'];
 const CACHEABLE=h=>h===self.location.host||h==='fonts.googleapis.com'||h==='fonts.gstatic.com'||h==='cdn.jsdelivr.net';
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});

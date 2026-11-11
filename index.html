@@ -272,6 +272,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
       <button type="button" class="chipbtn" id="langBtn">English</button>
       <button type="button" class="chipbtn" id="palBtn" aria-expanded="false" aria-controls="pals" data-en="Colors">الألوان</button>
       <button type="button" class="chipbtn" id="bkBtn" aria-expanded="false" aria-controls="backup" hidden data-en="Backup">نسخة احتياطية</button>
+      <button type="button" class="chipbtn" id="refreshBtn" aria-label="حدّثي الدفتر" data-en-aria="Refresh">↻</button>
       <button type="button" class="chipbtn" id="logoutBtn" hidden data-en="Log out">خروج</button>
     </div>
     <div class="pals" id="pals" role="group" hidden><span id="palName"></span></div>
@@ -1631,6 +1632,42 @@ $('bkRestore').addEventListener('click',async()=>{
   render();$('bkText').value='';$('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text');
   msg(added?L('اتضاف '+added+' حركة، والدفتر فيه دلوقتي '+entries.length+' حركة.','Added '+added+' entries; the book now has '+entries.length+'.'):L('كل الحركات دي موجودة خلاص.','All of these entries are already here.'));
 });
+
+/* ---------- keep fresh: new day, latest entries, latest version ---------- */
+let lastDay=iso(new Date()), hiddenAt=0, refreshing=false;
+async function refreshBook(manual){
+  if(refreshing) return; refreshing=true;
+  const b=$('refreshBtn'); b.disabled=true; b.style.opacity=.5;
+  try{
+    // A new day: the form, today's list and the month view move to today.
+    const today=iso(new Date());
+    if(today!==lastDay){
+      lastDay=today; const n=new Date(); viewY=n.getFullYear(); viewM=n.getMonth(); pickedDay=null;
+      if(!editId){$('date').value=today; if(!$('fromWrap').hidden) buildFromMonth(); if(!$('forWrap').hidden) buildForMonth()}
+      $('dDate').value=today;
+    }
+    // Latest entries from the account, and live updates reconnected.
+    if(typeof SB_ON==='function'&&SB_ON()&&sbUser){await sbLoadAll(); sbSubscribe()}
+    render();
+    // A newer version of the app, if one was published.
+    try{const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(r) await r.update()}catch(e){}
+    if(manual) msg(L('الدفتر اتحدّث.','Book refreshed.'));
+  }catch(e){ if(manual) msg(L('مش قادرة أحدّث دلوقتي. اتأكدي من النت.','Could not refresh. Check your connection.'),true) }
+  finally{ refreshing=false; b.disabled=false; b.style.opacity='' }
+}
+$('refreshBtn').addEventListener('click',()=>refreshBook(true));
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){hiddenAt=Date.now();return}
+  // Away more than 6 hours (e.g. overnight): reload fully, which also picks up any app update.
+  if(hiddenAt&&Date.now()-hiddenAt>6*3600e3&&navigator.onLine!==false){location.reload();return}
+  if(hiddenAt&&Date.now()-hiddenAt>30e3) refreshBook(false);
+});
+window.addEventListener('pageshow',e=>{if(e.persisted) refreshBook(false)});
+window.addEventListener('online',()=>refreshBook(false));
+// While the app stays open, roll over to the new day at midnight.
+setInterval(()=>{if(iso(new Date())!==lastDay) refreshBook(false)},60e3);
+// When a newer version takes over, load it.
+try{if(navigator.serviceWorker){let had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!editId&&!$('amount').value) location.reload();had=true})}}catch(e){}
 
 
 /* file backup (standalone build) */
