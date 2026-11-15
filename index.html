@@ -1752,6 +1752,9 @@ async function refreshBook(manual){
   if(refreshing) return; refreshing=true;
   const b=$('refreshBtn'); b.disabled=true; b.style.opacity=.5;
   try{
+    // A newer version of the app was published: load it.
+    if(typeof window.checkAppUpdate==='function'&&await window.checkAppUpdate()) return;
+
     // A new day: the form, today's list and the month view move to today.
     const today=iso(new Date());
     if(today!==lastDay){
@@ -1808,6 +1811,6 @@ switchTab(['add','month','money','plans','log'].includes(h0)?h0:'add',true);
 init();
 })();
 </script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
+<script>window.APP_BUILD='20261115130211';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </body>
 </html>
