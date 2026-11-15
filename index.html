@@ -301,7 +301,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
         <label><input type="radio" name="type" id="t-expense" value="expense" checked><span data-en="Spent">صرفت</span></label>
         <label><input type="radio" name="type" id="t-income" value="income"><span data-en="Got paid">دخلّي</span></label>
         <label><input type="radio" name="type" id="t-save" value="save"><span data-en="Saved">حوّشت</span></label>
-        <label><input type="radio" name="type" id="t-withdraw" value="withdraw"><span data-en="Took from savings">سحبت من الحوشة</span></label>
+        <label><input type="radio" name="type" id="t-withdraw" value="withdraw"><span data-en="Spent from savings">صرفت من التحويشة</span></label>
       </div>
       <div class="row">
         <label class="field amt"><span id="amtLabel">المبلغ (ج.م)</span><input id="amount" inputmode="decimal" placeholder="0" required></label>
@@ -310,6 +310,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
           <select id="method"><option value="كاش" data-en="Cash">كاش</option><option value="كارت" data-en="Card">كارت</option><option value="InstaPay">InstaPay</option><option value="محفظة موبايل" data-en="Mobile wallet">محفظة موبايل</option><option value="تحويل بنكي" data-en="Bank transfer">تحويل بنكي</option></select></label>
       </div>
       <div class="field"><span data-en="Category">الفئة</span><div class="chips" id="cats"></div></div>
+      <label class="field" id="acctWrap" hidden style="max-width:360px"><span id="acctLbl">اتدفع من</span><select id="acctSel"></select></label>
       <label class="field" id="fromWrap" hidden style="max-width:360px"><span data-en="Paid from the money of">اتصرف من فلوس شهر</span><select id="fromMonth"></select></label>
       <div class="row" id="extraRow" hidden>
         <label class="field" id="dedWrap" hidden><span data-en="Deductions (EGP)">الخصومات (ج.م)</span><input id="deduct" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
@@ -333,6 +334,12 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
   <!-- MONTH -->
   <section class="view" id="v-month" hidden>
     <section class="tiles" id="tiles" aria-label="ملخص" data-en-aria="Summary"></section>
+    <section class="panel">
+      <div class="head"><h2 data-en="Spent this month, all in">اتصرف الشهر ده عمومًا</h2><span class="muted" id="ovTotal"></span></div>
+      <div class="bars" id="ovBars"></div>
+      <h3 style="font-size:.9rem;font-weight:600" data-en="Day by day">كل يوم اتصرف فيه كام</h3>
+      <div id="ovDays" style="display:flex;flex-direction:column;gap:4px"></div>
+    </section>
     <section class="panel">
       <div class="head"><h2 data-en="How much do I spend each day?">كل يوم بصرف كام؟</h2><div class="verdict" id="verdict"></div></div>
       <div class="chartbox" id="dailyChart"></div>
@@ -386,6 +393,23 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
           </div>
         </form>
       </div>
+    </section>
+    <section class="panel" id="acctPanel">
+      <div class="head"><h2 data-en="My accounts">حساباتي وفلوسي</h2><span class="muted" id="acctTotal"></span></div>
+      <div id="acctList" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button type="button" class="btn ghost" id="acctAdd" data-en="+ Add an account">+ ضيفي حساب أو مكان بتحوّشي فيه</button>
+      <form class="goalform" id="acctForm" hidden autocomplete="off">
+        <label class="field" style="flex:2 1 180px"><span data-en="Name">الاسم</span><input id="acName" maxlength="40" placeholder="مثلاً: حساب البريد، CIB، كاش في البيت" data-en-ph="e.g. Post office, CIB, cash at home"></label>
+        <label class="field" style="flex:1 1 140px"><span data-en="Kind">النوع</span><select id="acKind"><option value="bank" data-en="Bank account">حساب بنك</option><option value="post" data-en="Post office account">حساب البريد</option><option value="cash" data-en="Cash put aside">كاش على جنب</option><option value="wallet" data-en="Mobile wallet">محفظة موبايل</option><option value="other" data-en="Other">تاني</option></select></label>
+        <label class="field" id="acBankWrap" style="flex:1 1 140px"><span data-en="Which bank">أنهي بنك</span><input id="acBank" maxlength="40" placeholder="CIB، الأهلي، مصر…" data-en-ph="CIB, NBE, Banque Misr…"></label>
+        <label class="field" style="flex:1 1 140px"><span data-en="Balance now">الرصيد دلوقتي</span><input id="acBal" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
+        <label class="field" style="flex:2 1 200px"><span data-en="Note (optional)">ملاحظة (اختياري)</span><input id="acNote" maxlength="80" placeholder="آخر 4 أرقام، الفرع…" data-en-ph="last 4 digits, branch…"></label>
+        <div class="actions" style="flex:1 1 100%">
+          <button class="btn" type="submit" id="acSave">احفظي</button>
+          <button class="btn ghost" type="button" id="acCancel" data-en="Cancel">إلغاء</button>
+          <button class="btn ghost" type="button" id="acDel" hidden style="color:var(--out);border-color:var(--out)">مسح الحساب</button>
+        </div>
+      </form>
     </section>
     <div class="grid2">
       <section class="panel">
@@ -507,14 +531,15 @@ try{lang=localStorage.getItem('ledger-lang')||'ar'}catch(e){}
 const L=(ar,en)=>lang==='en'?en:ar;
 const CUR=()=>L('ج.م','EGP');
 
-const TYPES_AR={expense:'مصروف',income:'دخل',save:'حوشة',withdraw:'سحب من الحوشة'};
+const TYPES_AR={expense:'مصروف',income:'دخل',save:'حوشة',withdraw:'من التحويشة'};
 const TYPES_EN={expense:'Expense',income:'Income',save:'Savings',withdraw:'From savings'};
+const isSpend=e=>e.type==='expense'||e.type==='withdraw';
 const typeName=t=>(lang==='en'?TYPES_EN:TYPES_AR)[t];
 const CATS={
   expense:['أكل وشرب','مواصلات','بيت وفواتير','شغل وأدوات','كورسات وتعليم','لبس وعناية','صحة','خروجات','اشتراكات وموبايل','هدايا ومناسبات','تمرين ورياضة','صدقة','تاني'],
   income:['شغل إضافي','جمعية','هدية','تاني'],
   save:['حوشة عامة','طوارئ','الهدف','جمعية'],
-  withdraw:['حوشة عامة','طوارئ','الهدف']
+  withdraw:null
 };
 const CAT_EN={'أكل وشرب':'Food & drinks','مواصلات':'Transport','بيت وفواتير':'Home & bills','شغل وأدوات':'Work & tools','كورسات وتعليم':'Courses','لبس وعناية':'Clothes & care','صحة':'Health','خروجات':'Outings','اشتراكات وموبايل':'Subscriptions & phone','هدايا ومناسبات':'Gifts & occasions','تمرين ورياضة':'Exercise','صدقة':'Sadaqa','تاني':'Other','مرتب ثابت':'Salary','مرتب':'Salary','كوميشن الزومات':'Zoom commission','شغل إضافي':'Extra work','هدية':'Gift','حوشة عامة':'General savings','طوارئ':'Emergency fund','الهدف':'Goal','جمعية':'Gamʿeya'};
 const catName=c=>lang==='en'?(CAT_EN[c]||c):c;
@@ -585,7 +610,7 @@ const daysIn=ym=>new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
 let PSC=null;
 function payStarts(){const m={};entries.forEach(e=>{if(e.type!=='income'||!e.budgetMonth||!e.date)return;if(e.date.slice(0,7)!==addM(e.budgetMonth,-1))return;if(!m[e.budgetMonth]||e.date<m[e.budgetMonth])m[e.budgetMonth]=e.date});return m}
 function autoBudget(date,PS){const ym=date.slice(0,7),nx=addM(ym,1);return PS[nx]&&date>=PS[nx]?nx:ym}
-function budgetOf(e,PS){const d=e.date||'';if(e.type==='income')return e.budgetMonth||d.slice(0,7);if(e.type==='expense'||e.type==='save')return e.fromMonth||autoBudget(d,PS||PSC||payStarts());return d.slice(0,7)}
+function budgetOf(e,PS){const d=e.date||'';if(e.type==='income')return e.budgetMonth||d.slice(0,7);if(e.type==='expense'||e.type==='save'||e.type==='withdraw')return e.fromMonth||autoBudget(d,PS||PSC||payStarts());return d.slice(0,7)}
 function ledger(ym,PS){
   // Carry-over starts at the first month that has income logged; months before tracking began stand alone.
   PS=PS||payStarts(); let minYm=ym; const bm=new Map();
@@ -593,7 +618,7 @@ function ledger(ym,PS){
   let carry=0,res={carry:0,inc:0,out:0,sv:0,df:0,left:0};
   for(let m=minYm;m<=ym;m=addM(m,1)){
     let inc=0,out=0,sv=0;
-    bm.forEach((b,e)=>{if(b!==m)return;const a=+e.amount||0;if(e.type==='income')inc+=a;else if(e.type==='expense')out+=a;else if(e.type==='save')sv+=a;else if(e.type==='withdraw')sv-=a});
+    bm.forEach((b,e)=>{if(b!==m)return;const a=+e.amount||0;if(e.type==='income')inc+=a;else if(e.type==='expense'&&!e.acct)out+=a;else if(e.type==='save')sv+=a});
     const df=debtFlow(m), left=carry+inc-out-sv+df;
     if(m===ym) res={carry,inc,out,sv,df,left};
     carry=left;
@@ -719,7 +744,7 @@ function debtFlow(ym){let f=0;debts.forEach(d=>{const s=d.dir==='lent'?-1:1;if((
 
 /* ---------- entry form ---------- */
 function drawCats(){
-  const list=(selType==='income'?incomeCats():CATS[selType]).slice();
+  const list=(selType==='income'?incomeCats():(CATS[selType]||CATS.expense)).slice();
   if(editId&&selCat&&!list.includes(selCat)) list.push(selCat);
   if(!list.includes(selCat)) selCat=list[0];
   $('cats').innerHTML=list.map(c=>'<button type="button" data-c="'+esc(c)+'" aria-pressed="'+(c===selCat)+'">'+esc(catName(c))+'</button>').join('');
@@ -732,8 +757,19 @@ function buildFromMonth(pref){
   const opts=['',addM(ym,-1),ym,addM(ym,1)]; if(cur&&!opts.includes(cur)) opts.push(cur);
   $('fromMonth').innerHTML=opts.map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v?ymLabel(v):L('تلقائي: ','Auto: ')+ymLabel(auto))+'</option>').join('');
 }
+function buildAcct(pref){
+  const t=selType, accs=acctList(), cur=pref!==undefined?pref:$('acctSel').value;
+  let opts=[];
+  if(t==='expense') opts=[['',L('فلوس الشهر (القبض)','This month’s pay')],...accs.map(a=>[a.id,acctLabel(a)])];
+  else if(t==='save') opts=[['',L('مش محدد','Not set')],...accs.map(a=>[a.id,acctLabel(a)])];
+  else if(t==='withdraw') opts=[...accs.map(a=>[a.id,acctLabel(a)]),['',L('تحويشة مش محددة','Unassigned savings')]];
+  $('acctLbl').textContent=t==='save'?L('حطيتها فين','Put it in'):t==='withdraw'?L('من أنهي حساب','From which account'):L('اتدفع من','Paid from');
+  $('acctSel').innerHTML=opts.map(([v,l])=>'<option value="'+esc(v)+'">'+esc(l)+'</option>').join('');
+  if(opts.some(o=>o[0]===cur)) $('acctSel').value=cur;
+}
 function toggleExtra(){
-  const outT=selType==='expense'||selType==='save'; $('fromWrap').hidden=!outT; if(outT) buildFromMonth();
+  const outT=selType==='expense'||selType==='save'||selType==='withdraw'; $('fromWrap').hidden=!outT; if(outT) buildFromMonth();
+  const acT=outT&&(selType!=='expense'||acctList().length>0); $('acctWrap').hidden=!acT; if(acT) buildAcct();
   const sr=curSrc(), ded=!!(sr&&sr.deductions), work=!!(sr&&sr.forPrev);
   $('dedWrap').hidden=!ded; $('netWrap').hidden=!ded; $('forWrap').hidden=!sr; $('workWrap').hidden=!work;
   if(sr) buildForMonth($('forMonth').value||undefined);
@@ -808,7 +844,8 @@ $('entryForm').addEventListener('submit',async e=>{
     if(sr.forPrev) obj.workMonth=$('workMonth').value||addM(date.slice(0,7),-1);
     if(sr.kind==='units'){const u={};let tot=0;$('unitsWrap').querySelectorAll('input[data-u]').forEach(i=>{const n=parseInt(num(i.value))||0;if(n){u[i.dataset.u]=n;tot+=n}});if(tot){obj.units=u;obj.zooms=tot}}
   }
-  if((selType==='expense'||selType==='save')&&$('fromMonth').value) obj.fromMonth=$('fromMonth').value;
+  if((selType==='expense'||selType==='save'||selType==='withdraw')&&$('fromMonth').value) obj.fromMonth=$('fromMonth').value;
+  if(!$('acctWrap').hidden&&$('acctSel').value) obj.acct=$('acctSel').value;
   const wasEdit=!!editId;
   try{
     $('submitBtn').disabled=true;
@@ -873,12 +910,12 @@ function render(){
   const daysElapsed=isCurrent?today.getDate():(isFuture?0:dim);
 
   const byDay=new Array(dim+1).fill(0);
-  month.forEach(e=>{if(e.type==='expense'){byDay[parse(e.date).getDate()]+=Number(e.amount)||0}});
+  month.forEach(e=>{if(isSpend(e)){byDay[parse(e.date).getDate()]+=Number(e.amount)||0}});
   const incomeList=entries.filter(e=>e.type==='income'&&(e.budgetMonth||(e.date||'').slice(0,7))===ym);
-  const spent=sum(month,'expense'),income=sum(incomeList,'income'),saved=sum(month,'save'),withdrawn=sum(month,'withdraw');
+  const spent=sum(month,'expense')+sum(month,'withdraw'),income=sum(incomeList,'income'),saved=sum(month,'save'),withdrawn=sum(month,'withdraw');
   const ws=weekStart(today), we=new Date(ws);we.setDate(we.getDate()+6);
-  const weekSpent=entries.filter(e=>e.type==='expense'&&e.date>=iso(ws)&&e.date<=iso(we)).reduce((a,e)=>a+Number(e.amount),0);
-  const todaySpent=entries.filter(e=>e.type==='expense'&&e.date===todayIso).reduce((a,e)=>a+Number(e.amount),0);
+  const weekSpent=entries.filter(e=>isSpend(e)&&e.date>=iso(ws)&&e.date<=iso(we)).reduce((a,e)=>a+Number(e.amount),0);
+  const todaySpent=entries.filter(e=>isSpend(e)&&e.date===todayIso).reduce((a,e)=>a+Number(e.amount),0);
   const dflow=debtFlow(ym);
   PSC=payStarts(); const lg=ledger(ym,PSC); const left=lg.left;
   const avg=daysElapsed?spent/daysElapsed:0;
@@ -889,8 +926,8 @@ function render(){
     t.push(['out',L('صرفت الأسبوع ده','Spent this week'),weekSpent,L('من السبت ','Since Sat ')+ws.getDate()+' '+MO(ws.getMonth())]);
   }
   // Spending that belongs to this month's money, including days after payday at the end of the previous month.
-  const monthB=entries.filter(e=>e.type==='expense'&&e.date&&budgetOf(e,PSC)===ym);
-  const earlyList=entries.filter(e=>(e.type==='expense'||e.type==='save')&&e.date&&e.date.slice(0,7)<ym&&budgetOf(e,PSC)===ym);
+  const monthB=entries.filter(e=>isSpend(e)&&e.date&&budgetOf(e,PSC)===ym);
+  const earlyList=entries.filter(e=>(isSpend(e)||e.type==='save')&&e.date&&e.date.slice(0,7)<ym&&budgetOf(e,PSC)===ym);
   const startDay=PSC[ym];
   t.push(['out',L('صرفت من فلوس الشهر ده','Spent from this month’s money'),lg.out,[startDay?L('الشهر بدأ يوم القبض ','Started on payday ')+dFmt(startDay):'',daysElapsed?L('متوسط ','Avg ')+money(avg)+L(' في اليوم',' a day'):''].filter(Boolean).join(' · ')]);
   const byInc={};incomeList.forEach(e=>byInc[e.cat]=(byInc[e.cat]||0)+Number(e.amount));
@@ -903,12 +940,14 @@ function render(){
   drawToday(todaySpent,weekSpent);
   drawDaily(byDay,dim,daysElapsed,avg,isCurrent?today.getDate():0,ym,month);
   drawConsistency(byDay,daysElapsed,avg);
-  drawCats2(monthB,lg.out);
+  drawCats2(monthB,monthB.reduce((a,e)=>a+(+e.amount||0),0));
+  drawOverall(monthB,ym,lg);
+  drawAccounts(ym);
   drawWeeks(byDay,dim,daysElapsed);
   drawFlow(income,lg.out,lg.sv,incomeList);
   drawFixed(incomeList,isCurrent,isFuture,today);
   drawSavings(lg.sv,0,income);
-  drawGive(monthB,income);
+  drawGive(monthB.filter(e=>e.type==='expense'),income);
   drawLog(month,earlyList);
   drawWishes();
   drawDebts();
@@ -921,7 +960,7 @@ function curStats(){
   const inc=lg.inc, sp=lg.out, sv=lg.sv, carry=lg.carry;
   const days=new Set(mo.filter(e=>e.type==='expense').map(e=>e.date)).size;
   const avg=el?sum(mo,'expense')/el:0, rest=el>=3?avg*(dim-el):0;
-  const bal=entries.reduce((a,e)=>a+(isGam(e)?0:e.type==='save'?+e.amount:e.type==='withdraw'?-e.amount:0),0);
+  const bal=totalSaved();
   const gi=gamInfo(ym), gm=entries.filter(e=>isGam(e)&&budgetOf(e,PS)===ym); let gamAdj=0;
   if(gi.active&&!gm.some(e=>e.type==='save')) gamAdj-=gi.g.monthly;
   if(gi.payoutHere&&!mo.some(e=>e.cat===GAM&&(e.type==='withdraw'||e.type==='income'))) gamAdj+=gi.payout;
@@ -944,9 +983,10 @@ function drawToday(todaySpent,weekSpent){
 }
 
 function itemHTML(e){
-  const notes=[e.deductions?L('إجمالي ','Gross ')+money(e.gross)+L(' − خصومات ',' − deductions ')+money(e.deductions):'',e.workMonth?L('عن شغل ','For work in ')+ymLabel(e.workMonth):'',unitsTxt(e),(e.budgetMonth&&e.budgetMonth!==(e.date||'').slice(0,7))?L('بيتصرف في ','Spent in ')+ymLabel(e.budgetMonth):'',((e.type==='expense'||e.type==='save')&&e.date&&budgetOf(e)!==e.date.slice(0,7))?L('من فلوس ','From ')+ymLabel(budgetOf(e))+L('',' money'):'',esc(e.note||'')].filter(Boolean);
+  const acN=e.acct?acctName(e.acct):(e.type==='withdraw'?L('تحويشة مش محددة','Unassigned savings'):'');
+  const notes=[acN?(e.type==='save'?'→ ':'← ')+esc(acN):'',e.deductions?L('إجمالي ','Gross ')+money(e.gross)+L(' − خصومات ',' − deductions ')+money(e.deductions):'',e.workMonth?L('عن شغل ','For work in ')+ymLabel(e.workMonth):'',unitsTxt(e),(e.budgetMonth&&e.budgetMonth!==(e.date||'').slice(0,7))?L('بيتصرف في ','Spent in ')+ymLabel(e.budgetMonth):'',((e.type==='expense'||e.type==='save')&&e.date&&budgetOf(e)!==e.date.slice(0,7))?L('من فلوس ','From ')+ymLabel(budgetOf(e))+L('',' money'):'',esc(e.note||'')].filter(Boolean);
   return '<div class="item"><span class="dot '+e.type+'"></span><div class="what"><div class="c">'+esc(catName(e.cat))+' <span class="muted" style="font-size:.78rem;font-weight:400">· '+typeName(e.type)+(e.method?' · '+esc(methName(e.method)):'')+'</span></div>'+(notes.length?'<div class="n">'+notes.join(' · ')+'</div>':'')+'</div>'+
-    '<span class="val '+e.type+'">'+(e.type==='expense'||e.type==='save'?'−':'+')+money(e.amount)+'</span>'+
+    '<span class="val '+e.type+'">'+(e.type==='income'?'+':'−')+money(e.amount)+'</span>'+
     '<span class="ops"><button type="button" class="ed" data-edit="'+esc(e.id)+'">'+L('تعديل','Edit')+'</button><button type="button" data-del="'+esc(e.id)+'" class="'+(armedDel===e.id?'sure':'')+'">'+(armedDel===e.id?L('متأكدة؟','Sure?'):L('مسح','Delete'))+'</button></span></div>';
 }
 
@@ -1077,8 +1117,8 @@ function drawFixed(incomeList,isCurrent,isFuture,today){
 }
 
 function drawSavings(savedM,withM,incomeM){
-  const all=entries.reduce((a,e)=>a+(isGam(e)?0:e.type==='save'?+e.amount:e.type==='withdraw'?-e.amount:0),0);
-  const gm=entries.filter(e=>isGam(e)&&budgetOf(e)===viewY+'-'+pad(viewM+1)).reduce((a,e)=>a+(e.type==='save'?+e.amount:-e.amount),0);
+  const all=totalSaved();
+  const gm=entries.filter(e=>e.type==='save'&&e.cat===GAM&&budgetOf(e)===viewY+'-'+pad(viewM+1)).reduce((a,e)=>a+(+e.amount||0),0);
   const net=savedM-withM-gm;
   $('saveRate').textContent=incomeM?L('حوّشتي '+Math.round(net/incomeM*100)+'% من دخل الشهر','Saved '+Math.round(net/incomeM*100)+'% of this month’s income'):'';
   let h='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:.85rem">'+L('رصيد الحوشة كله','Total savings')+'</span><span class="num" style="font-size:1.5rem;font-weight:600;color:var(--save)">'+money(all)+' <span class="cur">'+CUR()+'</span></span></div>';
@@ -1136,7 +1176,8 @@ async function onListClick(e){
     $('forMonth').innerHTML='';$('workMonth').innerHTML='';
     drawCats();
     if(x.type==='income'&&srcByName(x.cat)){buildForMonth(x.budgetMonth||x.date.slice(0,7));if(x.workMonth)buildWorkMonth(x.workMonth);drawUnitInputs(Object.assign({},x.units||x.zoomsBy||{}))}
-    if(x.type==='expense'||x.type==='save') buildFromMonth(x.fromMonth||'');
+    if(x.type==='expense'||x.type==='save'||x.type==='withdraw') buildFromMonth(x.fromMonth||'');
+    if(!$('acctWrap').hidden) buildAcct(x.acct||'');
     $('note').value=x.note||'';$('method').value=x.method||'كاش';
     $('cancelEdit').hidden=false;$('submitBtn').textContent=L('احفظ التعديل','Save changes');switchTab('add');$('amount').focus();return}
   if(dl){const id=dl.dataset.del;
@@ -1632,6 +1673,74 @@ $('bkRestore').addEventListener('click',async()=>{
   render();$('bkText').value='';$('bkRestore').textContent=L('استرجعي من النص ده','Restore from this text');
   msg(added?L('اتضاف '+added+' حركة، والدفتر فيه دلوقتي '+entries.length+' حركة.','Added '+added+' entries; the book now has '+entries.length+'.'):L('كل الحركات دي موجودة خلاص.','All of these entries are already here.'));
 });
+
+
+/* ---------- accounts (bank, post office, cash put aside…) ----------
+   Balance = the opening amount + what was saved into it − what was spent or taken from it.
+   'Balance now' in the form sets the opening amount so the balance comes out right. */
+const ACK=()=>({bank:L('بنك','Bank'),post:L('البريد','Post office'),cash:L('كاش على جنب','Cash'),wallet:L('محفظة','Wallet'),other:L('تاني','Other')});
+const acctList=()=>Array.isArray(settings.accounts)?settings.accounts:[];
+const acctName=id=>{const a=acctList().find(x=>x.id===id);return a?a.name:L('حساب اتمسح','Deleted account')};
+const acctLabel=a=>a.name+(a.kind==='bank'&&a.bank&&a.bank!==a.name?' ('+a.bank+')':'');
+function acctMoves(id,ym){
+  let inn=0,out=0,mIn=0,mOut=0;
+  entries.forEach(e=>{const a=+e.amount||0, mine=(e.acct||'')===id;
+    if(!mine) return;
+    const isIn=e.type==='save'&&!(id===''&&e.cat===GAM), isOut=e.type==='withdraw'||(e.type==='expense'&&id!=='');
+    if(isIn){inn+=a;if(ym&&budgetOf(e)===ym)mIn+=a}
+    if(isOut){out+=a;if(ym&&budgetOf(e)===ym)mOut+=a}
+  });
+  return {inn,out,mIn,mOut};
+}
+function acctBal(a){const m=acctMoves(a.id);return (+a.opening||0)+m.inn-m.out}
+function unassignedBal(){const m=acctMoves('');return m.inn-m.out}
+function totalSaved(){return acctList().reduce((t,a)=>t+acctBal(a),0)+unassignedBal()}
+let acEdit=null, acDelArmed=false;
+function drawAccounts(ym){
+  const accs=acctList(), un=acctMoves('',ym), unBal=unassignedBal();
+  $('acctTotal').innerHTML=M(totalSaved())+' '+CUR();
+  const row=(name,sub,bal,m,btn)=>'<div class="srcrow"><div><div class="t">'+name+'</div><div class="sub">'+sub+'</div>'+
+    ((m.mIn||m.mOut)?'<div class="sub">'+MO(viewM)+': '+(m.mIn?L('اتحط ','in ')+M(m.mIn):'')+(m.mIn&&m.mOut?' · ':'')+(m.mOut?L('اتسحب ','out ')+M(m.mOut):'')+'</div>':'')+
+    '</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="num" style="font-weight:600;font-size:1.05rem;color:var('+(bal<0?'--out':'--save')+')">'+(bal<0?'−':'')+money(Math.abs(bal))+'</span>'+btn+'</div></div>';
+  let h=accs.map(a=>row(esc(a.name),[ACK()[a.kind]||'',a.kind==='bank'&&a.bank?esc(a.bank):'',esc(a.note||'')].filter(Boolean).join(' · '),acctBal(a),acctMoves(a.id,ym),'<button type="button" data-ac="'+esc(a.id)+'">'+L('تعديل','Edit')+'</button>')).join('');
+  if(unBal||un.mIn||un.mOut) h+=row(L('تحويشة مش متحدد مكانها','Savings not assigned'),L('حوشة أو صرف من التحويشة من غير ما تحددي الحساب. دوسي «تعديل» على الحركة في السجل واختاري الحساب.','Savings or spending without an account. Edit the entry in the log and choose one.'),unBal,un,'');
+  if(!h) h='<div class="empty">'+L('ضيفي حساباتك: حساب البنك (وأنهي بنك)، حساب البريد، والكاش اللي محوشاه على جنب، وحطي رصيد كل واحد. بعدها لما تحوّشي أو تصرفي منه، الدفتر هيقولك اتحط كام واتسحب كام وفاضل كام في كل واحد.','Add your accounts: bank (and which bank), post office, and cash put aside, with each balance. Then saving into or spending from one updates what is left in it.')+'</div>';
+  $('acctList').innerHTML=h;
+}
+function acFormUI(){$('acBankWrap').hidden=$('acKind').value!=='bank';$('acSave').textContent=acEdit?L('احفظي التعديل','Save changes'):L('ضيفي الحساب','Add account');$('acDel').hidden=!acEdit;$('acDel').textContent=acDelArmed?L('متأكدة؟ دوسي تاني','Sure? Tap again'):L('مسح الحساب','Delete account')}
+function openAcForm(a){acEdit=a?a.id:null;acDelArmed=false;$('acName').value=a?a.name:'';$('acKind').value=a?a.kind:'bank';$('acBank').value=a?(a.bank||''):'';$('acBal').value=a?Math.round(acctBal(a)*100)/100:'';$('acNote').value=a?(a.note||''):'';$('acctForm').hidden=false;$('acctAdd').hidden=true;acFormUI();$('acName').focus()}
+function closeAcForm(){acEdit=null;$('acctForm').hidden=true;$('acctAdd').hidden=false}
+$('acctAdd').addEventListener('click',()=>openAcForm(null));
+$('acCancel').addEventListener('click',closeAcForm);
+$('acKind').addEventListener('change',acFormUI);
+$('acctList').addEventListener('click',e=>{const b=e.target.closest('[data-ac]');if(!b)return;const a=acctList().find(x=>x.id===b.dataset.ac);if(a)openAcForm(a)});
+$('acctForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=$('acName').value.trim(); if(!name){msg(L('اكتبي اسم الحساب.','Enter a name.'),true);$('acName').focus();return}
+  const id=acEdit||('a'+Date.now().toString(36)), m=acctMoves(id), want=num($('acBal').value);
+  const a={id,name,kind:$('acKind').value,bank:$('acKind').value==='bank'?$('acBank').value.trim():'',note:$('acNote').value.trim(),opening:Math.round(((isFinite(want)?want:0)-m.inn+m.out)*100)/100};
+  const list=acctList().slice(), i=list.findIndex(x=>x.id===id); if(i>-1) list[i]=a; else list.push(a);
+  try{await putSettings({accounts:list});closeAcForm();render();drawCats();msg(i>-1?L('اتعدّل.','Updated.'):L('اتضاف الحساب.','Account added.'))}catch(err){msg(L('ماتحفظش. جرّبي تاني.','Not saved. Try again.'),true)}
+});
+$('acDel').addEventListener('click',async()=>{
+  if(!acEdit) return; if(!acDelArmed){acDelArmed=true;acFormUI();return}
+  try{await putSettings({accounts:acctList().filter(x=>x.id!==acEdit)});closeAcForm();render();drawCats();msg(L('اتمسح الحساب. الحركات اللي عليه لسه في السجل.','Account deleted. Its entries stay in the log.'))}catch(err){msg(L('ماتمسحش.','Not deleted.'),true)}
+});
+
+/* ---------- spent this month, all in ---------- */
+function drawOverall(list,ym,lg){
+  const tot=list.reduce((a,e)=>a+(+e.amount||0),0);
+  $('ovTotal').innerHTML=M(tot)+' '+CUR();
+  if(!list.length){$('ovBars').innerHTML='<div class="empty">'+L('لسه مفيش مصروف في '+MO(viewM)+'.','No spending in '+MO(viewM)+' yet.')+'</div>';$('ovDays').innerHTML='';return}
+  const src=e=>e.acct?'a:'+e.acct:(e.type==='withdraw'?'u':'m');
+  const nm=k=>k==='m'?L('من فلوس الشهر (القبض)','From this month’s pay'):k==='u'?L('من التحويشة (مش محدد الحساب)','From savings (account not set)'):L('من ','From ')+acctName(k.slice(2));
+  const by={};list.forEach(e=>{const k=src(e);by[k]=(by[k]||0)+(+e.amount||0)});
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]), mx=rows[0][1];
+  $('ovBars').innerHTML=rows.map(([k,v])=>'<div class="bar"><span>'+esc(nm(k))+' <span class="muted num" style="font-size:.78rem">'+Math.round(v/tot*100)+'%</span></span><div class="track"><div class="fill" style="background:var('+(k==='m'?'--out':'--save')+');width:'+(v/mx*100)+'%"></div></div><span class="amt2">'+money(v)+'</span></div>').join('');
+  const days={};list.forEach(e=>{const d=days[e.date]||(days[e.date]={t:0,m:0,s:0});const a=+e.amount||0;d.t+=a;if(src(e)==='m')d.m+=a;else d.s+=a});
+  $('ovDays').innerHTML=Object.keys(days).sort().reverse().map(k=>{const d=days[k],dt=parse(k);
+    return '<div class="fx" style="padding:8px 12px"><div><div class="t" style="font-weight:500">'+WD(dt.getDay())+' '+dt.getDate()+' '+MO(dt.getMonth())+'</div>'+(d.s?'<div class="sub">'+(d.m?L('من القبض ','pay ')+M(d.m)+' · ':'')+L('من التحويشة ','savings ')+M(d.s)+'</div>':'')+'</div><span class="num" style="font-weight:600;color:var(--out)">'+money(d.t)+'</span></div>'}).join('');
+}
 
 /* ---------- keep fresh: new day, latest entries, latest version ---------- */
 let lastDay=iso(new Date()), hiddenAt=0, refreshing=false;
