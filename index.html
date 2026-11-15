@@ -107,6 +107,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
 
 /* today card */
 .today{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.today:has(.wb:nth-child(4)){grid-template-columns:repeat(2,minmax(0,1fr))}
 .today .wb .v{font-size:1.25rem}
 
 /* entry slip */
@@ -403,7 +404,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
       <button type="button" class="btn ghost" id="acctAdd" data-en="+ Add an account or saving">+ ضيفي حساب أو تحويشة (كاش، دهب، عقار…)</button>
       <form class="goalform" id="acctForm" hidden autocomplete="off">
         <label class="field" style="flex:2 1 180px"><span data-en="Name">الاسم</span><input id="acName" maxlength="40" placeholder="مثلاً: حساب البريد، CIB، كاش في البيت" data-en-ph="e.g. Post office, CIB, cash at home"></label>
-        <label class="field" style="flex:1 1 140px"><span data-en="Kind">النوع</span><select id="acKind"><option value="bank" data-en="Bank account">حساب بنك</option><option value="post" data-en="Post office account">حساب البريد</option><option value="cash" data-en="Cash put aside">كاش على جنب</option><option value="wallet" data-en="Mobile wallet">محفظة موبايل</option><option value="gold" data-en="Gold">دهب</option><option value="property" data-en="Property / land">عقار أو أرض</option><option value="invest" data-en="Certificates / investments">شهادات أو استثمار</option><option value="other" data-en="Other">تاني</option></select></label>
+        <label class="field" style="flex:1 1 140px"><span data-en="Kind">النوع</span><select id="acKind"><option value="pocket" data-en="Cash I spend from">كاش معايا (بصرف منه)</option><option value="bank" data-en="Bank account">حساب بنك</option><option value="post" data-en="Post office account">حساب البريد</option><option value="cash" data-en="Cash put aside">كاش على جنب</option><option value="wallet" data-en="Mobile wallet">محفظة موبايل</option><option value="gold" data-en="Gold">دهب</option><option value="property" data-en="Property / land">عقار أو أرض</option><option value="invest" data-en="Certificates / investments">شهادات أو استثمار</option><option value="other" data-en="Other">تاني</option></select></label>
         <label class="field" id="acGramsWrap" hidden style="flex:1 1 110px"><span data-en="Grams">كام جرام</span><input id="acGrams" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
         <label class="field" id="acKaratWrap" hidden style="flex:1 1 100px"><span data-en="Karat">عيار</span><select id="acKarat"><option>21</option><option>18</option><option>24</option></select></label>
         <label class="field" id="acBankWrap" style="flex:1 1 140px"><span data-en="Which bank">أنهي بنك</span><input id="acBank" maxlength="40" placeholder="CIB، الأهلي، مصر…" data-en-ph="CIB, NBE, Banque Misr…"></label>
@@ -764,7 +765,7 @@ function buildFromMonth(pref){
   $('fromMonth').innerHTML=opts.map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v?ymLabel(v):L('تلقائي: ','Auto: ')+ymLabel(auto))+'</option>').join('');
 }
 function buildAcct(pref){
-  const t=selType, cur=pref!==undefined?pref:$('acctSel').value, accs=openAccts(cur);
+  const t=selType, cur=pref!==undefined?pref:$('acctSel').value, accs=t==='move'?openAccts(cur):saveAccts(cur);
   // 'Not set' only shows when there are no accounts yet, or an old entry being edited has none.
   const noneOk=!accs.length||(editId&&cur==='');
   let opts=[];
@@ -1008,7 +1009,8 @@ function drawToday(todaySpent,weekSpent){
   $('todayCard').innerHTML=
     '<div class="wb"><span class="k">'+L('صرفت النهارده','Spent today')+'</span><span class="v" style="color:var(--out)">'+money(todaySpent)+'</span></div>'+
     '<div class="wb"><span class="k">'+L('الأسبوع ده','This week')+'</span><span class="v">'+money(weekSpent)+'</span></div>'+
-    '<div class="wb"><span class="k">'+L('متوقع يفضل آخر ','Left by end of ')+s.mName+'</span><span class="v" style="color:var('+(s.proj>=0?'--in':'--out')+')">'+(s.proj<0?'−':'')+money(Math.abs(s.proj))+'</span></div>';
+    '<div class="wb"><span class="k">'+L('متوقع يفضل آخر ','Left by end of ')+s.mName+'</span><span class="v" style="color:var('+(s.proj>=0?'--in':'--out')+')">'+(s.proj<0?'−':'')+money(Math.abs(s.proj))+'</span></div>'+
+    acctList().filter(a=>isPocket(a)&&!a.closed).map(a=>{const b=acctBal(a);return '<div class="wb"><span class="k">'+esc(a.name)+'</span><span class="v" style="color:var('+(b<0?'--out':'--ink')+')">'+(b<0?'−':'')+money(Math.abs(b))+'</span></div>'}).join('');
   const list=entries.filter(e=>e.date===ti).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   $('todayCount').textContent=list.length?list.length+L(' حركة',' entries'):'';
   $('todayList').innerHTML=list.length?list.map(itemHTML).join(''):'<div class="empty">'+L('لسه ماسجلتيش حاجة النهارده. اكتبي المبلغ فوق واختاري الفئة ودوسي «سجّل».','Nothing logged today yet. Enter the amount above, pick a category and tap Save.')+'</div>';
@@ -1711,13 +1713,27 @@ $('bkRestore').addEventListener('click',async()=>{
 /* ---------- accounts (bank, post office, cash put aside…) ----------
    Balance = the opening amount + what was saved into it − what was spent or taken from it.
    'Balance now' in the form sets the opening amount so the balance comes out right. */
-const ACK=()=>({bank:L('بنك','Bank'),post:L('البريد','Post office'),cash:L('كاش على جنب','Cash'),wallet:L('محفظة','Wallet'),gold:L('دهب','Gold'),property:L('عقار','Property'),invest:L('شهادات واستثمار','Investments'),other:L('تاني','Other')});
+const ACK=()=>({pocket:L('كاش معايا للصرف','Spending cash'),bank:L('بنك','Bank'),post:L('البريد','Post office'),cash:L('كاش على جنب','Cash'),wallet:L('محفظة','Wallet'),gold:L('دهب','Gold'),property:L('عقار','Property'),invest:L('شهادات واستثمار','Investments'),other:L('تاني','Other')});
+const isPocket=a=>!!a&&a.kind==='pocket';
 const isAsset=a=>a.kind==='gold'||a.kind==='property'||a.kind==='invest';
 const acctList=()=>Array.isArray(settings.accounts)?settings.accounts:[];
 const openAccts=keep=>acctList().filter(a=>!a.closed||a.id===keep);
+const saveAccts=keep=>openAccts(keep).filter(a=>!isPocket(a)||a.id===keep);
+/* The cash in hand she spends from. Counted from the moment she last set its balance:
+   + cash income and money moved into it, − cash spending from this month's money, cash put into savings, and money moved out of it. */
+function pocketMoves(a,ym){
+  const t=+a.anchorAt||0; let inn=0,out=0,mIn=0,mOut=0;
+  entries.forEach(e=>{if((+e.createdAt||0)<t)return;const x=+e.amount||0;let d=0;
+    if(e.type==='move'){if(e.to===a.id)d=x;else if(e.acct===a.id)d=-x}
+    else if(e.method==='كاش'){if(e.type==='income')d=x;else if(e.type==='expense'&&(!e.acct||e.acct===a.id))d=-x;else if(e.type==='save'&&e.acct!==a.id)d=-x}
+    if(!d)return; const here=ym&&budgetOf(e)===ym;
+    if(d>0){inn+=d;if(here)mIn+=d}else{out-=d;if(here)mOut-=d}});
+  return {inn,out,mIn,mOut};
+}
 const acctName=id=>{const a=acctList().find(x=>x.id===id);return a?a.name:L('حساب اتمسح','Deleted account')};
 const acctLabel=a=>a.name+(a.kind==='bank'&&a.bank&&a.bank!==a.name?' ('+a.bank+')':'');
 function acctMoves(id,ym){
+  const pa=id?acctList().find(a=>a.id===id):null; if(isPocket(pa)) return pocketMoves(pa,ym);
   let inn=0,out=0,mIn=0,mOut=0;
   entries.forEach(e=>{const a=+e.amount||0, mine=(e.acct||'')===id, mv=e.type==='move';
     if(!mine&&!(mv&&id!==''&&e.to===id)) return;
@@ -1729,7 +1745,7 @@ function acctMoves(id,ym){
 }
 function acctBal(a){const m=acctMoves(a.id);return (+a.opening||0)+m.inn-m.out}
 function unassignedBal(){const m=acctMoves('');return m.inn-m.out}
-function totalSaved(){return acctList().reduce((t,a)=>t+acctBal(a),0)+unassignedBal()}
+function totalSaved(){return acctList().filter(a=>!isPocket(a)).reduce((t,a)=>t+acctBal(a),0)+unassignedBal()}
 let acEdit=null, acDelArmed=false;
 function drawAccounts(ym){
   const accs=acctList(), un=acctMoves('',ym), unBal=unassignedBal();
@@ -1738,13 +1754,13 @@ function drawAccounts(ym){
   const row=(name,sub,bal,m,btn)=>'<div class="srcrow"><div><div class="t">'+name+'</div><div class="sub">'+sub+'</div>'+
     ((m.mIn||m.mOut)?'<div class="sub">'+MO(viewM)+': '+(m.mIn?L('اتحط ','in ')+M(m.mIn):'')+(m.mIn&&m.mOut?' · ':'')+(m.mOut?L('اتسحب ','out ')+M(m.mOut):'')+'</div>':'')+
     '</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="num" style="font-weight:600;font-size:1.05rem;color:var('+(bal<0?'--out':'--save')+')">'+(bal<0?'−':'')+money(Math.abs(bal))+'</span>'+btn+'</div></div>';
-  const ord=accs.filter(a=>!a.closed).concat(accs.filter(a=>a.closed));
-  let h=ord.map(a=>row(esc(a.name),[a.closed?L('اتباع أو اتقفل','sold / closed'):'',ACK()[a.kind]||'',a.kind==='bank'&&a.bank?esc(a.bank):'',a.kind==='gold'&&a.grams?money(a.grams)+L(' جرام',' g')+(a.karat?L(' عيار ',' ')+a.karat+L('','k'):''):'',isAsset(a)?L('قيمته التقريبية','approx. value'):'',esc(a.note||'')].filter(Boolean).join(' · '),acctBal(a),acctMoves(a.id,ym),'<button type="button" data-ac="'+esc(a.id)+'">'+L('تعديل','Edit')+'</button>')).join('');
+  const ord=accs.filter(isPocket).concat(accs.filter(a=>!a.closed&&!isPocket(a)),accs.filter(a=>a.closed&&!isPocket(a)));
+  let h=ord.map(a=>row(esc(a.name),[a.closed?L('اتباع أو اتقفل','sold / closed'):'',ACK()[a.kind]||'',a.kind==='bank'&&a.bank?esc(a.bank):'',a.kind==='gold'&&a.grams?money(a.grams)+L(' جرام',' g')+(a.karat?L(' عيار ',' ')+a.karat+L('','k'):''):'',isAsset(a)?L('قيمته التقريبية','approx. value'):'',isPocket(a)?L('مش من التحويشة: بيقل لما تصرفي كاش وبيزيد لما تقبضي كاش','not savings: goes down with cash spending, up with cash income'):'',esc(a.note||'')].filter(Boolean).join(' · '),acctBal(a),acctMoves(a.id,ym),'<button type="button" data-ac="'+esc(a.id)+'">'+L('تعديل','Edit')+'</button>')).join('');
   if(unBal||un.mIn||un.mOut) h+=row(L('تحويشة مش متحدد مكانها','Savings not assigned'),L('حوشة أو صرف من التحويشة من غير ما تحددي الحساب. دوسي «تعديل» على الحركة في السجل واختاري الحساب.','Savings or spending without an account. Edit the entry in the log and choose one.'),unBal,un,'');
   if(!h) h='<div class="empty">'+L('ضيفي حساباتك وتحويشتك: حساب البنك (وأنهي بنك)، حساب البريد، الكاش اللي على جنب، والدهب أو العقار أو الشهادات، وحطي رصيد أو قيمة كل واحد. بعدها لما تحوّشي أو تصرفي منه، الدفتر هيقولك اتحط كام واتسحب كام وفاضل كام في كل واحد.','Add your accounts: bank (and which bank), post office, and cash put aside, with each balance. Then saving into or spending from one updates what is left in it.')+'</div>';
   $('acctList').innerHTML=h;
 }
-function acFormUI(){const k=$('acKind').value;$('acBankWrap').hidden=k!=='bank';$('acGramsWrap').hidden=k!=='gold';$('acKaratWrap').hidden=k!=='gold';$('acBalLbl').textContent=(k==='gold'||k==='property'||k==='invest')?L('قيمته دلوقتي تقريبًا (ج.م)','Value now, approx. (EGP)'):L('الرصيد دلوقتي','Balance now');$('acSave').textContent=acEdit?L('احفظي التعديل','Save changes'):L('ضيفي الحساب','Add account');$('acDel').hidden=!acEdit;$('acDel').textContent=acDelArmed?L('متأكدة؟ دوسي تاني','Sure? Tap again'):L('مسح الحساب','Delete account')}
+function acFormUI(){const k=$('acKind').value;$('acBankWrap').hidden=k!=='bank';$('acGramsWrap').hidden=k!=='gold';$('acKaratWrap').hidden=k!=='gold';$('acBalLbl').textContent=k==='pocket'?L('معاكي كام دلوقتي','How much you have now'):(k==='gold'||k==='property'||k==='invest')?L('قيمته دلوقتي تقريبًا (ج.م)','Value now, approx. (EGP)'):L('الرصيد دلوقتي','Balance now');$('acSave').textContent=acEdit?L('احفظي التعديل','Save changes'):L('ضيفي الحساب','Add account');$('acDel').hidden=!acEdit;$('acDel').textContent=acDelArmed?L('متأكدة؟ دوسي تاني','Sure? Tap again'):L('مسح الحساب','Delete account')}
 function openAcForm(a){acEdit=a?a.id:null;acDelArmed=false;$('acName').value=a?a.name:'';$('acKind').value=a?a.kind:'bank';$('acBank').value=a?(a.bank||''):'';$('acBal').value=a?Math.round(acctBal(a)*100)/100:'';$('acNote').value=a?(a.note||''):'';$('acGrams').value=a&&a.grams?a.grams:'';$('acKarat').value=a&&a.karat?String(a.karat):'21';$('acctForm').hidden=false;$('acctAdd').hidden=true;acFormUI();$('acName').focus()}
 function closeAcForm(){acEdit=null;$('acctForm').hidden=true;$('acctAdd').hidden=false}
 $('acctAdd').addEventListener('click',()=>openAcForm(null));
@@ -1756,6 +1772,7 @@ $('acctForm').addEventListener('submit',async e=>{
   const name=$('acName').value.trim(); if(!name){msg(L('اكتبي اسم الحساب.','Enter a name.'),true);$('acName').focus();return}
   const id=acEdit||('a'+Date.now().toString(36)), m=acctMoves(id), want=num($('acBal').value);
   const a={id,name,kind:$('acKind').value,bank:$('acKind').value==='bank'?$('acBank').value.trim():'',note:$('acNote').value.trim(),grams:$('acKind').value==='gold'?(num($('acGrams').value)||0):0,karat:$('acKind').value==='gold'?+$('acKarat').value:0,opening:Math.round(((isFinite(want)?want:0)-m.inn+m.out)*100)/100};
+  if(a.kind==='pocket'){a.opening=Math.round((isFinite(want)?want:0)*100)/100;a.anchorAt=Date.now()}
   const list=acctList().slice(), i=list.findIndex(x=>x.id===id); if(i>-1){if(list[i].closed&&Math.abs(a.opening+m.inn-m.out)<0.005)a.closed=true;list[i]=a} else list.push(a);
   try{await putSettings({accounts:list});closeAcForm();render();drawCats();msg(i>-1?L('اتعدّل.','Updated.'):L('اتضاف الحساب.','Account added.'))}catch(err){msg(L('ماتحفظش. جرّبي تاني.','Not saved. Try again.'),true)}
 });
@@ -1844,6 +1861,6 @@ switchTab(['add','month','money','plans','log'].includes(h0)?h0:'add',true);
 init();
 })();
 </script>
-<script>window.APP_BUILD='20261115130749';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
+<script>window.APP_BUILD='20261115131511';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </body>
 </html>
