@@ -397,12 +397,14 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
     <section class="panel" id="acctPanel">
       <div class="head"><h2 data-en="My accounts">حساباتي وفلوسي</h2><span class="muted" id="acctTotal"></span></div>
       <div id="acctList" style="display:flex;flex-direction:column;gap:6px"></div>
-      <button type="button" class="btn ghost" id="acctAdd" data-en="+ Add an account">+ ضيفي حساب أو مكان بتحوّشي فيه</button>
+      <button type="button" class="btn ghost" id="acctAdd" data-en="+ Add an account or saving">+ ضيفي حساب أو تحويشة (كاش، دهب، عقار…)</button>
       <form class="goalform" id="acctForm" hidden autocomplete="off">
         <label class="field" style="flex:2 1 180px"><span data-en="Name">الاسم</span><input id="acName" maxlength="40" placeholder="مثلاً: حساب البريد، CIB، كاش في البيت" data-en-ph="e.g. Post office, CIB, cash at home"></label>
-        <label class="field" style="flex:1 1 140px"><span data-en="Kind">النوع</span><select id="acKind"><option value="bank" data-en="Bank account">حساب بنك</option><option value="post" data-en="Post office account">حساب البريد</option><option value="cash" data-en="Cash put aside">كاش على جنب</option><option value="wallet" data-en="Mobile wallet">محفظة موبايل</option><option value="other" data-en="Other">تاني</option></select></label>
+        <label class="field" style="flex:1 1 140px"><span data-en="Kind">النوع</span><select id="acKind"><option value="bank" data-en="Bank account">حساب بنك</option><option value="post" data-en="Post office account">حساب البريد</option><option value="cash" data-en="Cash put aside">كاش على جنب</option><option value="wallet" data-en="Mobile wallet">محفظة موبايل</option><option value="gold" data-en="Gold">دهب</option><option value="property" data-en="Property / land">عقار أو أرض</option><option value="invest" data-en="Certificates / investments">شهادات أو استثمار</option><option value="other" data-en="Other">تاني</option></select></label>
+        <label class="field" id="acGramsWrap" hidden style="flex:1 1 110px"><span data-en="Grams">كام جرام</span><input id="acGrams" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
+        <label class="field" id="acKaratWrap" hidden style="flex:1 1 100px"><span data-en="Karat">عيار</span><select id="acKarat"><option>21</option><option>18</option><option>24</option></select></label>
         <label class="field" id="acBankWrap" style="flex:1 1 140px"><span data-en="Which bank">أنهي بنك</span><input id="acBank" maxlength="40" placeholder="CIB، الأهلي، مصر…" data-en-ph="CIB, NBE, Banque Misr…"></label>
-        <label class="field" style="flex:1 1 140px"><span data-en="Balance now">الرصيد دلوقتي</span><input id="acBal" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
+        <label class="field" style="flex:1 1 140px"><span id="acBalLbl">الرصيد دلوقتي</span><input id="acBal" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>
         <label class="field" style="flex:2 1 200px"><span data-en="Note (optional)">ملاحظة (اختياري)</span><input id="acNote" maxlength="80" placeholder="آخر 4 أرقام، الفرع…" data-en-ph="last 4 digits, branch…"></label>
         <div class="actions" style="flex:1 1 100%">
           <button class="btn" type="submit" id="acSave">احفظي</button>
@@ -1678,7 +1680,8 @@ $('bkRestore').addEventListener('click',async()=>{
 /* ---------- accounts (bank, post office, cash put aside…) ----------
    Balance = the opening amount + what was saved into it − what was spent or taken from it.
    'Balance now' in the form sets the opening amount so the balance comes out right. */
-const ACK=()=>({bank:L('بنك','Bank'),post:L('البريد','Post office'),cash:L('كاش على جنب','Cash'),wallet:L('محفظة','Wallet'),other:L('تاني','Other')});
+const ACK=()=>({bank:L('بنك','Bank'),post:L('البريد','Post office'),cash:L('كاش على جنب','Cash'),wallet:L('محفظة','Wallet'),gold:L('دهب','Gold'),property:L('عقار','Property'),invest:L('شهادات واستثمار','Investments'),other:L('تاني','Other')});
+const isAsset=a=>a.kind==='gold'||a.kind==='property'||a.kind==='invest';
 const acctList=()=>Array.isArray(settings.accounts)?settings.accounts:[];
 const acctName=id=>{const a=acctList().find(x=>x.id===id);return a?a.name:L('حساب اتمسح','Deleted account')};
 const acctLabel=a=>a.name+(a.kind==='bank'&&a.bank&&a.bank!==a.name?' ('+a.bank+')':'');
@@ -1698,17 +1701,18 @@ function totalSaved(){return acctList().reduce((t,a)=>t+acctBal(a),0)+unassigned
 let acEdit=null, acDelArmed=false;
 function drawAccounts(ym){
   const accs=acctList(), un=acctMoves('',ym), unBal=unassignedBal();
-  $('acctTotal').innerHTML=M(totalSaved())+' '+CUR();
+  const assets=accs.filter(isAsset).reduce((t,a)=>t+acctBal(a),0), cashT=totalSaved()-assets;
+  $('acctTotal').innerHTML=M(totalSaved())+' '+CUR()+(assets?' <span style="font-size:.78rem">('+L('فلوس ','money ')+money(cashT)+' · '+L('دهب وأصول ','assets ')+money(assets)+')</span>':'');
   const row=(name,sub,bal,m,btn)=>'<div class="srcrow"><div><div class="t">'+name+'</div><div class="sub">'+sub+'</div>'+
     ((m.mIn||m.mOut)?'<div class="sub">'+MO(viewM)+': '+(m.mIn?L('اتحط ','in ')+M(m.mIn):'')+(m.mIn&&m.mOut?' · ':'')+(m.mOut?L('اتسحب ','out ')+M(m.mOut):'')+'</div>':'')+
     '</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="num" style="font-weight:600;font-size:1.05rem;color:var('+(bal<0?'--out':'--save')+')">'+(bal<0?'−':'')+money(Math.abs(bal))+'</span>'+btn+'</div></div>';
-  let h=accs.map(a=>row(esc(a.name),[ACK()[a.kind]||'',a.kind==='bank'&&a.bank?esc(a.bank):'',esc(a.note||'')].filter(Boolean).join(' · '),acctBal(a),acctMoves(a.id,ym),'<button type="button" data-ac="'+esc(a.id)+'">'+L('تعديل','Edit')+'</button>')).join('');
+  let h=accs.map(a=>row(esc(a.name),[ACK()[a.kind]||'',a.kind==='bank'&&a.bank?esc(a.bank):'',a.kind==='gold'&&a.grams?money(a.grams)+L(' جرام',' g')+(a.karat?L(' عيار ',' ')+a.karat+L('','k'):''):'',isAsset(a)?L('قيمته التقريبية','approx. value'):'',esc(a.note||'')].filter(Boolean).join(' · '),acctBal(a),acctMoves(a.id,ym),'<button type="button" data-ac="'+esc(a.id)+'">'+L('تعديل','Edit')+'</button>')).join('');
   if(unBal||un.mIn||un.mOut) h+=row(L('تحويشة مش متحدد مكانها','Savings not assigned'),L('حوشة أو صرف من التحويشة من غير ما تحددي الحساب. دوسي «تعديل» على الحركة في السجل واختاري الحساب.','Savings or spending without an account. Edit the entry in the log and choose one.'),unBal,un,'');
-  if(!h) h='<div class="empty">'+L('ضيفي حساباتك: حساب البنك (وأنهي بنك)، حساب البريد، والكاش اللي محوشاه على جنب، وحطي رصيد كل واحد. بعدها لما تحوّشي أو تصرفي منه، الدفتر هيقولك اتحط كام واتسحب كام وفاضل كام في كل واحد.','Add your accounts: bank (and which bank), post office, and cash put aside, with each balance. Then saving into or spending from one updates what is left in it.')+'</div>';
+  if(!h) h='<div class="empty">'+L('ضيفي حساباتك وتحويشتك: حساب البنك (وأنهي بنك)، حساب البريد، الكاش اللي على جنب، والدهب أو العقار أو الشهادات، وحطي رصيد أو قيمة كل واحد. بعدها لما تحوّشي أو تصرفي منه، الدفتر هيقولك اتحط كام واتسحب كام وفاضل كام في كل واحد.','Add your accounts: bank (and which bank), post office, and cash put aside, with each balance. Then saving into or spending from one updates what is left in it.')+'</div>';
   $('acctList').innerHTML=h;
 }
-function acFormUI(){$('acBankWrap').hidden=$('acKind').value!=='bank';$('acSave').textContent=acEdit?L('احفظي التعديل','Save changes'):L('ضيفي الحساب','Add account');$('acDel').hidden=!acEdit;$('acDel').textContent=acDelArmed?L('متأكدة؟ دوسي تاني','Sure? Tap again'):L('مسح الحساب','Delete account')}
-function openAcForm(a){acEdit=a?a.id:null;acDelArmed=false;$('acName').value=a?a.name:'';$('acKind').value=a?a.kind:'bank';$('acBank').value=a?(a.bank||''):'';$('acBal').value=a?Math.round(acctBal(a)*100)/100:'';$('acNote').value=a?(a.note||''):'';$('acctForm').hidden=false;$('acctAdd').hidden=true;acFormUI();$('acName').focus()}
+function acFormUI(){const k=$('acKind').value;$('acBankWrap').hidden=k!=='bank';$('acGramsWrap').hidden=k!=='gold';$('acKaratWrap').hidden=k!=='gold';$('acBalLbl').textContent=(k==='gold'||k==='property'||k==='invest')?L('قيمته دلوقتي تقريبًا (ج.م)','Value now, approx. (EGP)'):L('الرصيد دلوقتي','Balance now');$('acSave').textContent=acEdit?L('احفظي التعديل','Save changes'):L('ضيفي الحساب','Add account');$('acDel').hidden=!acEdit;$('acDel').textContent=acDelArmed?L('متأكدة؟ دوسي تاني','Sure? Tap again'):L('مسح الحساب','Delete account')}
+function openAcForm(a){acEdit=a?a.id:null;acDelArmed=false;$('acName').value=a?a.name:'';$('acKind').value=a?a.kind:'bank';$('acBank').value=a?(a.bank||''):'';$('acBal').value=a?Math.round(acctBal(a)*100)/100:'';$('acNote').value=a?(a.note||''):'';$('acGrams').value=a&&a.grams?a.grams:'';$('acKarat').value=a&&a.karat?String(a.karat):'21';$('acctForm').hidden=false;$('acctAdd').hidden=true;acFormUI();$('acName').focus()}
 function closeAcForm(){acEdit=null;$('acctForm').hidden=true;$('acctAdd').hidden=false}
 $('acctAdd').addEventListener('click',()=>openAcForm(null));
 $('acCancel').addEventListener('click',closeAcForm);
@@ -1718,7 +1722,7 @@ $('acctForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const name=$('acName').value.trim(); if(!name){msg(L('اكتبي اسم الحساب.','Enter a name.'),true);$('acName').focus();return}
   const id=acEdit||('a'+Date.now().toString(36)), m=acctMoves(id), want=num($('acBal').value);
-  const a={id,name,kind:$('acKind').value,bank:$('acKind').value==='bank'?$('acBank').value.trim():'',note:$('acNote').value.trim(),opening:Math.round(((isFinite(want)?want:0)-m.inn+m.out)*100)/100};
+  const a={id,name,kind:$('acKind').value,bank:$('acKind').value==='bank'?$('acBank').value.trim():'',note:$('acNote').value.trim(),grams:$('acKind').value==='gold'?(num($('acGrams').value)||0):0,karat:$('acKind').value==='gold'?+$('acKarat').value:0,opening:Math.round(((isFinite(want)?want:0)-m.inn+m.out)*100)/100};
   const list=acctList().slice(), i=list.findIndex(x=>x.id===id); if(i>-1) list[i]=a; else list.push(a);
   try{await putSettings({accounts:list});closeAcForm();render();drawCats();msg(i>-1?L('اتعدّل.','Updated.'):L('اتضاف الحساب.','Account added.'))}catch(err){msg(L('ماتحفظش. جرّبي تاني.','Not saved. Try again.'),true)}
 });
