@@ -139,6 +139,8 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
 @media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .tile{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .tile .k{font-size:.8rem;color:var(--muted)}
+.linkbtn{background:none;border:0;padding:4px 0 0;color:var(--accent);font:inherit;font-size:.78rem;text-decoration:underline;cursor:pointer;text-align:start}
+.fixbox{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .tile .v{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:1.35rem;font-weight:600;direction:ltr;overflow-wrap:anywhere}
 .tile .s{font-size:.76rem;color:var(--muted)}
 .tile.out .v{color:var(--out)} .tile.in .v{color:var(--in)} .tile.sv .v{color:var(--save)}
@@ -632,7 +634,7 @@ const daysIn=ym=>new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
    on the day it is received: spending and saving from that day on come out of the new month's money,
    unless the entry says otherwise (fromMonth). Whatever is left of a month carries over to the next. */
 let PSC=null;
-function payStarts(){const m={};entries.forEach(e=>{if(e.type!=='income'||!e.budgetMonth||!e.date)return;if(e.date.slice(0,7)!==addM(e.budgetMonth,-1))return;if(!m[e.budgetMonth]||e.date<m[e.budgetMonth])m[e.budgetMonth]=e.date});return m}
+function payStarts(){const m={};entries.forEach(e=>{if(e.type!=='income'||!e.budgetMonth||!e.date||e.method==='تسوية')return;if(e.date.slice(0,7)!==addM(e.budgetMonth,-1))return;if(!m[e.budgetMonth]||e.date<m[e.budgetMonth])m[e.budgetMonth]=e.date});return m}
 function autoBudget(date,PS){const ym=date.slice(0,7),nx=addM(ym,1);return PS[nx]&&date>=PS[nx]?nx:ym}
 function budgetOf(e,PS){const d=e.date||'';if(e.type==='income')return e.budgetMonth||d.slice(0,7);if(e.type==='expense'||e.type==='save'||e.type==='withdraw'||e.type==='move')return e.fromMonth||autoBudget(d,PS||PSC||payStarts());return d.slice(0,7)}
 function ledger(ym,PS){
@@ -988,7 +990,12 @@ function render(){
   t.push(['in',L('دخلّي الشهر ده','Income this month'),income,incParts.length?incParts.slice(0,3).join(' + ')+(incParts.length>3?' …':''):(isFuture||!srcList().length?'':L('لسه مفيش دخل متسجل','No income logged yet'))]);
   t.push(['sv',L('حوّشت من فلوس الشهر ده','Saved from this month’s money'),lg.sv,(()=>{const g=entries.filter(e=>e.type==='save'&&e.cat===GAM&&budgetOf(e,PSC)===ym);const gs=g.reduce((a,e)=>a+(+e.amount||0),0);return gs?L('منهم جمعية ','Gamʿeya ')+money(gs)+(g.length>1?L(' ('+g.length+' أقساط)',' ('+g.length+' installments)'):''):''})()]);
   t.push(['',L('الباقي معايا','Left with me'),left,(lg.carry?L('مترحّل من '+MO((viewM+11)%12)+' ','Carried from '+MO((viewM+11)%12)+' ')+(lg.carry<0?L('ناقص ','short '):'')+money(Math.abs(lg.carry))+' + ':'')+L('دخل ','income ')+money(lg.inc)+L(' − مصروف ',' − spending ')+money(lg.out)+(lg.sv?L(' − حوشة ',' − savings ')+money(lg.sv):'')+(lg.df?(lg.df>0?L(' + سلف ',' + loans '):L(' − سلف ',' − loans '))+money(Math.abs(lg.df)):'')]);
-  $('tiles').innerHTML=t.map(([c,k,v,s])=>'<div class="tile '+c+'"><span class="k">'+k+'</span><span class="v">'+neg(v)+'<span class="cur">'+CUR()+'</span></span><span class="s">'+esc(s)+'</span></div>').join('');
+  window.__leftNow={ym,left};
+  const fix=isFuture?'':'<button type="button" class="linkbtn" data-fix="open">'+L('الرقم ده مش اللي معايا؟','Not what you really have?')+'</button>'+
+    '<div class="fixbox" id="fixLeft" hidden><label class="field"><span>'+L('معاكي كام فعلًا من فلوس الشهر ده؟','How much of this month’s money do you really have?')+'</span><input id="fixLeftIn" inputmode="decimal" placeholder="0" style="direction:ltr;text-align:right"></label>'+
+    '<div class="muted" style="font-size:.76rem">'+L('الفرق هيتسجل «فرق مش متسجل» علشان الحساب يمشي صح. لو افتكرتي الصرف الحقيقي، سجليه وامسحي الفرق من السجل.','The gap is logged as “unlogged difference” so the books add up. If you remember the real spending, log it and delete the difference.')+'</div>'+
+    '<button type="button" class="btn" data-fix="save" style="margin-top:6px">'+L('ظبطيه','Fix it')+'</button></div>';
+  $('tiles').innerHTML=t.map(([c,k,v,s],i)=>'<div class="tile '+c+'"><span class="k">'+k+'</span><span class="v">'+neg(v)+'<span class="cur">'+CUR()+'</span></span><span class="s">'+esc(s)+'</span>'+(i===t.length-1?fix:'')+'</div>').join('');
 
   drawToday(todaySpent,weekSpent);
   drawDaily(byDay,dim,daysElapsed,avg,isCurrent?today.getDate():0,ym,month);
@@ -1110,6 +1117,16 @@ function drawCats2(month,spent){
     return '<div class="bar bar4" data-oc="'+esc(c)+'" role="button" tabindex="0" aria-expanded="'+op+'"><span>'+esc(catName(c))+' <span class="muted num" style="font-size:.78rem">'+Math.round(v/spent*100)+'%</span></span><div class="track"><div class="fill" style="width:'+(v/mx*100)+'%;'+(c===GIVE?'background:var(--give)':'')+'"></div></div><span class="amt2">'+money(v)+'</span><span class="caret">'+(op?'⌄':'›')+'</span></div>'+(op?subBreak(items[c],v):'')}).join('');
 }
 const openCats=new Set();
+$('tiles').addEventListener('click',async e=>{const b=e.target.closest('[data-fix]');if(!b)return;
+  if(b.dataset.fix==='open'){const f=$('fixLeft');f.hidden=!f.hidden;if(!f.hidden)$('fixLeftIn').focus();return}
+  const v=$('fixLeftIn').value.trim(); if(v===''){$('fixLeftIn').focus();return}
+  const actual=num(v)||0, {ym,left}=window.__leftNow||{}, diff=Math.round((left-actual)*100)/100; if(!ym)return;
+  if(Math.abs(diff)<0.5){msg(L('الرقم مظبوط أصلًا.','It already matches.'));return}
+  const ti=iso(new Date()), date=ti.slice(0,7)>=ym?ti:ym+'-01', note=L('تسوية: الباقي الفعلي ','Adjustment: actually left ')+money(actual);
+  const obj=diff>0?{type:'expense',cat:'تاني',sub:L('فرق مش متسجل','Unlogged difference'),amount:diff,date,fromMonth:ym,method:'تسوية',note,createdAt:Date.now()}
+                  :{type:'income',cat:'تاني',amount:-diff,date,budgetMonth:ym,method:'تسوية',note,createdAt:Date.now()};
+  try{await putEntry(null,obj);msg(L('اتظبط. الباقي بقى ','Fixed. Left is now ')+money(actual))}catch(err){msg(L('ماتحفظش، جربي تاني.','Not saved, try again.'),true)}
+});
 function subBreak(list,tot){
   const g={};list.forEach(e=>{const k=subKey(e)||'';const x=g[k]||(g[k]={n:0,v:0});x.n++;x.v+=+e.amount||0});
   let rows=Object.entries(g).sort((a,b)=>b[1].v-a[1].v);
@@ -1907,6 +1924,6 @@ switchTab(['add','month','money','plans','log'].includes(h0)?h0:'add',true);
 init();
 })();
 </script>
-<script>window.APP_BUILD='20261126220231';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
+<script>window.APP_BUILD='20261126220918';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </body>
 </html>
