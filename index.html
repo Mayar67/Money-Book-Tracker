@@ -1007,21 +1007,33 @@ function render(){
 }
 
 function curStats(){
-  const t=new Date(), ym=ymOf(t), dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate(), el=t.getDate();
-  const mo=entries.filter(e=>(e.date||'').slice(0,7)===ym);
-  const PS=payStarts(), lg=ledger(ym,PS);
+  // The month that counts is the budget month: once payday has come, the new pay's month starts,
+  // and it runs until the day before the next payday.
+  const t=new Date(), PS=payStarts(), ti=iso(t), ym=autoBudget(ti,PS);
+  const sal=srcList().find(x=>x.spendNext&&x.kind==='fixed');
+  const start=PS[ym]&&PS[ym]<=ti?PS[ym]:ym+'-01';
+  const end=sal?ym+'-'+pad(Math.max(1,Math.min(daysIn(ym),(+sal.day||25))-1)):ym+'-'+pad(daysIn(ym));
+  const dayN=a=>Math.round((parse(a)-parse(start))/864e5)+1;
+  const el=Math.max(1,dayN(ti)), dim=Math.max(el,dayN(end));
+  const lg=ledger(ym,PS);
+  const mo=entries.filter(e=>e.type==='expense'&&!e.acct&&e.date&&budgetOf(e,PS)===ym);
   const inc=lg.inc, sp=lg.out, sv=lg.sv, carry=lg.carry;
-  const days=new Set(mo.filter(e=>e.type==='expense').map(e=>e.date)).size;
-  const avg=el?sum(mo,'expense')/el:0, rest=el>=3?avg*(dim-el):0;
+  const days=new Set(mo.map(e=>e.date)).size;
+  // Expected spending for the days left: a typical day over the last 4 weeks (the median day,
+  // so one big purchase like a course or clothes does not inflate every remaining day).
+  const dd={};entries.forEach(e=>{if(e.type==='expense'&&!e.acct&&e.date&&e.date<ti)dd[e.date]=(dd[e.date]||0)+(+e.amount||0)});
+  const last=[];for(let i=1;i<=28;i++){const d=new Date(t);d.setDate(d.getDate()-i);last.push(dd[iso(d)]||0)}
+  last.sort((a,b)=>a-b); const typ=(last[13]+last[14])/2;
+  const avg=typ, rest=typ*(dim-el);
   const bal=totalSaved();
   const gi=gamInfo(ym), gm=entries.filter(e=>isGam(e)&&budgetOf(e,PS)===ym); let gamAdj=0;
   if(gi.active&&!gm.some(e=>e.type==='save')) gamAdj-=gi.g.monthly;
-  if(gi.payoutHere&&!mo.some(e=>e.cat===GAM&&(e.type==='withdraw'||e.type==='income'))) gamAdj+=gi.payout;
+  if(gi.payoutHere&&!entries.some(e=>e.cat===GAM&&(e.type==='withdraw'||e.type==='income')&&e.date&&budgetOf(e,PS)===ym)) gamAdj+=gi.payout;
   const df=lg.df;
   let bankAdj=0;
   debts.forEach(d=>{if(d.dir!=='bank'||remOf(d)<=0)return;const idx=mDiff(d.start||ym,ym);if(idx<0||idx>=(+d.months||0))return;
     if(!(d.payments||[]).some(p=>(p.date||'').slice(0,7)===ym)) bankAdj-=Math.min(+d.inst||0,remOf(d))});
-  return {ym,inc,sp,sv,carry,rest,gamAdj,df,bankAdj,proj:lg.left-rest+gamAdj+bankAdj,bal,el,days,mName:MO(t.getMonth())};
+  return {ym,inc,sp,sv,carry,rest,gamAdj,df,bankAdj,proj:lg.left-rest+gamAdj+bankAdj,bal,el,days,mName:MO(+ym.slice(5)-1)};
 }
 
 function drawToday(todaySpent,weekSpent){
@@ -1895,6 +1907,6 @@ switchTab(['add','month','money','plans','log'].includes(h0)?h0:'add',true);
 init();
 })();
 </script>
-<script>window.APP_BUILD='20261126190440';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
+<script>window.APP_BUILD='20261126220231';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </body>
 </html>
