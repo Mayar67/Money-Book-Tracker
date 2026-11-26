@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>دفتر فلوسي</title>
+<title>Money Tracker</title>
 <meta name="description" content="دفتر شخصي لتسجيل المصروف والدخل والحوشة، بيحسب اليوم والأسبوع والشهر.">
 <meta name="theme-color" content="#1F2433">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="دفتر فلوسي">
+<meta name="apple-mobile-web-app-title" content="Money Tracker">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -273,7 +273,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
 <div class="app">
   <header class="top">
     <div class="brand">
-      <h1 data-en="My Money Book">دفتر فلوسي</h1>
+      <h1 data-en="Money Tracker" style="direction:ltr;text-align:right">Money Tracker</h1>
       <div class="status" id="status">بيحمّل الدفتر…</div>
     </div>
     <div class="hbtns">
@@ -507,7 +507,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
 
 <div class="auth" id="auth" hidden>
   <div class="authcard">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1 data-en="My Money Book">دفتر فلوسي</h1><button type="button" class="chipbtn" id="aLang">English</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1 data-en="Money Tracker" style="direction:ltr;text-align:right">Money Tracker</h1><button type="button" class="chipbtn" id="aLang">English</button></div>
     <div class="seg" role="radiogroup" aria-label="دخول أو دفتر جديد" data-en-aria="Log in or new book">
       <label><input type="radio" name="amode" id="am-login" value="save" checked><span data-en="Log in">دخول</span></label>
       <label><input type="radio" name="amode" id="am-new" value="save"><span data-en="New book">دفتر جديد</span></label>
@@ -1049,7 +1049,7 @@ function curStats(){
   let bankAdj=0;
   debts.forEach(d=>{if(d.dir!=='bank'||remOf(d)<=0)return;const idx=mDiff(d.start||ym,ym);if(idx<0||idx>=(+d.months||0))return;
     if(!(d.payments||[]).some(p=>(p.date||'').slice(0,7)===ym)) bankAdj-=Math.min(+d.inst||0,remOf(d))});
-  return {ym,inc,sp,sv,carry,rest,gamAdj,df,bankAdj,proj:lg.left-rest+gamAdj+bankAdj,bal,el,days,mName:MO(+ym.slice(5)-1)};
+  return {ym,inc,sp,sv,carry,rest,typ,daysLeft:dim-el,left:lg.left,gamAdj,df,bankAdj,proj:lg.left-rest+gamAdj+bankAdj,bal,el,days,mName:MO(+ym.slice(5)-1)};
 }
 
 function drawToday(todaySpent,weekSpent){
@@ -1057,7 +1057,7 @@ function drawToday(todaySpent,weekSpent){
   $('todayCard').innerHTML=
     '<div class="wb"><span class="k">'+L('صرفت النهارده','Spent today')+'</span><span class="v" style="color:var(--out)">'+money(todaySpent)+'</span></div>'+
     '<div class="wb"><span class="k">'+L('الأسبوع ده','This week')+'</span><span class="v">'+money(weekSpent)+'</span></div>'+
-    '<div class="wb"><span class="k">'+L('متوقع يفضل آخر ','Left by end of ')+s.mName+'</span><span class="v" style="color:var('+(s.proj>=0?'--in':'--out')+')">'+neg(s.proj)+'</span></div>'+
+    '<div class="wb"><span class="k">'+L('معايا من فلوس ','Left of ')+s.mName+'</span><span class="v" style="color:var('+(s.left>=0?'--in':'--out')+')">'+neg(s.left)+'</span></div>'+
     acctList().filter(a=>isPocket(a)&&!a.closed).map(a=>{const b=acctBal(a);return '<div class="wb"><span class="k">'+esc(a.name)+'</span><span class="v" style="color:var(--ink)">'+money(Math.max(0,b))+'</span></div>'}).join('');
   const list=entries.filter(e=>e.date===ti).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   $('todayCount').textContent=list.length?list.length+L(' حركة',' entries'):'';
@@ -1364,7 +1364,7 @@ function drawWishes(){
   $('wishSum').innerHTML=open.length?open.length+L(' حاجة · ',' items · ')+M(total)+' '+CUR():'';
   const avail=Math.max(0,s.proj);
   const parts=[L('دخل ','Income ')+money(s.inc),L('صرفتي ','spent ')+money(s.sp)];
-  let sub=(s.carry?L('مترحّل ','Carried ')+(s.carry<0?L('ناقص ','short '):'')+money(Math.abs(s.carry))+' + ':'')+parts.join(' − ')+(s.rest?L(' − متوقع ',' − expected ')+money(s.rest)+L(' لآخر الشهر',' to month end'):'')+(s.sv?L(' − حوشة وجمعية ',' − savings & gamʿeya ')+money(s.sv):'')+(s.gamAdj<0?L(' − قسط جمعية ',' − gamʿeya installment ')+money(-s.gamAdj):s.gamAdj>0?L(' + قبض جمعية ',' + gamʿeya payout ')+money(s.gamAdj):'')+(s.df?(s.df>0?L(' + سلف ',' + loans '):L(' − سلف ',' − loans '))+money(Math.abs(s.df)):'')+(s.bankAdj?L(' − أقساط بنك ',' − bank installments ')+money(-s.bankAdj):'');
+  let sub=(s.carry?L('مترحّل ','Carried ')+(s.carry<0?L('ناقص ','short '):'')+money(Math.abs(s.carry))+' + ':'')+parts.join(' − ')+(s.rest?L(' − صرف متوقع ',' − expected spending ')+money(s.rest)+' ('+L('يومك العادي ','your usual day ')+money(Math.round(s.typ))+' × '+s.daysLeft+L(' يوم لحد القبض الجاي',' days to next payday')+')':'')+(s.sv?L(' − حوشة وجمعية ',' − savings & gamʿeya ')+money(s.sv):'')+(s.gamAdj<0?L(' − قسط جمعية ',' − gamʿeya installment ')+money(-s.gamAdj):s.gamAdj>0?L(' + قبض جمعية ',' + gamʿeya payout ')+money(s.gamAdj):'')+(s.df?(s.df>0?L(' + سلف ',' + loans '):L(' − سلف ',' − loans '))+money(Math.abs(s.df)):'')+(s.bankAdj?L(' − أقساط بنك ',' − bank installments ')+money(-s.bankAdj):'');
   $('wishBudget').innerHTML=
     '<div class="wb"><span class="k">'+L('متوقع يفضل معاكي آخر ','Expected left at end of ')+s.mName+'</span><span class="v" style="color:var('+(s.proj>=0?'--in':'--out')+')">'+neg(s.proj)+'</span><span class="s">'+sub+'</span></div>'+
     '<div class="wb"><span class="k">'+L('رصيد الحوشة','Savings balance')+'</span><span class="v" style="color:var(--save)">'+money(s.bal)+'</span><span class="s">'+L('لو اضطريتي تسحبي منها','If you need to dip into it')+'</span></div>'+
@@ -1933,6 +1933,6 @@ switchTab(['add','month','money','plans','log'].includes(h0)?h0:'add',true);
 init();
 })();
 </script>
-<script>window.APP_BUILD='20261127002623';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
+<script>window.APP_BUILD='20261127003938';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </body>
 </html>
