@@ -487,6 +487,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
           <div id="bankTotal" class="muted" style="flex:1 1 100%;font-size:.85rem" hidden></div>
         </div>
         <label class="field" style="flex:2 1 200px"><span data-en="Note (optional)">ملاحظة (اختياري)</span><input id="dNote" maxlength="120"></label>
+        <label id="dOutWrap" style="display:flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer;flex:1 1 100%"><input type="checkbox" id="dOutside" style="width:18px;height:18px;accent-color:var(--accent)"><span data-en="Not from this month’s money (savings or an account) — it doesn’t change what’s left this month">مش من فلوس الشهر (من التحويشة أو حساب): مش هتأثر على «الباقي معايا»</span></label>
         <button class="btn" type="submit" id="dSubmit">سجّلي</button>
         <button class="btn ghost" type="button" id="dCancel" hidden data-en="Cancel">إلغاء</button>
       </form>
@@ -766,7 +767,7 @@ async function putSettings(obj){
 }
 const paidOf=d=>(d.payments||[]).reduce((a,p)=>a+Number(p.amount),0);
 const remOf=d=>Math.max(0,Number(d.amount)-paidOf(d));
-function debtFlow(ym){let f=0;debts.forEach(d=>{const s=d.dir==='lent'?-1:1;if((d.date||'').slice(0,7)===ym)f+=s*Number(d.dir==='bank'?(d.received||0):d.amount);(d.payments||[]).forEach(p=>{if((p.date||'').slice(0,7)===ym)f-=s*Number(p.amount)})});return f}
+function debtFlow(ym){let f=0;debts.forEach(d=>{if(d.notMonth)return;const s=d.dir==='lent'?-1:1;if((d.date||'').slice(0,7)===ym)f+=s*Number(d.dir==='bank'?(d.received||0):d.amount);(d.payments||[]).forEach(p=>{if((p.date||'').slice(0,7)===ym)f-=s*Number(p.amount)})});return f}
 
 /* ---------- entry form ---------- */
 function drawCats(){
@@ -862,7 +863,7 @@ $('subChips').addEventListener('click',e=>{const b=e.target.closest('button[data
 $('subIn').addEventListener('input',drawSubs);
 document.querySelectorAll('input[name="type"]').forEach(r=>r.addEventListener('change',()=>{selType=r.value;drawCats()}));
 function resetForm(){
-  editId=null;['amount','note','deduct','netShow','subIn'].forEach(i=>$(i).value='');$('fromMonth').innerHTML='';$('unitsWrap').innerHTML='';$('date').value=iso(new Date());
+  editId=null;$('acctSel').innerHTML='';$('toSel').innerHTML='';['amount','note','deduct','netShow','subIn'].forEach(i=>$(i).value='');$('fromMonth').innerHTML='';$('unitsWrap').innerHTML='';$('date').value=iso(new Date());
   $('cancelEdit').hidden=true;$('submitBtn').textContent=L('سجّل','Save');
 }
 function goAdd(type,cat){
@@ -1421,7 +1422,7 @@ function debtFormUI(){
   const dir=$('d-bank').checked?'bank':$('d-borrowed').checked?'borrowed':'lent', bank=dir==='bank';
   $('dWhoL').textContent=bank?L('البنك أو الجهة','Bank or provider'):L('مين','Who');
   $('dAmtL').textContent=bank?L('المبلغ اللي استلمتيه','Amount received'):L('المبلغ','Amount');
-  $('bankRow').hidden=!bank; $('dueWrap').hidden=bank; $('bPaidWrap').hidden=!!debtEdit;
+  $('bankRow').hidden=!bank; $('dueWrap').hidden=bank; $('dOutWrap').hidden=bank; $('dOutWrap').querySelector('span').textContent=dir==='borrowed'?L('مش داخلة فلوس الشهر (راحت التحويشة أو حساب): مش هتأثر على «الباقي معايا»','Didn’t go into this month’s money — doesn’t change what’s left'):L('مش من فلوس الشهر (من التحويشة أو حساب): مش هتأثر على «الباقي معايا»','Not from this month’s money (savings or an account) — doesn’t change what’s left'); $('bPaidWrap').hidden=!!debtEdit;
   const i=num($('bInst').value), m=parseInt(num($('bMonths').value)), rc=num($('dAmount').value);
   const show=bank&&i>0&&m>0; $('bankTotal').hidden=!show;
   if(show) $('bankTotal').innerHTML=L('إجمالي اللي هترجعيه ','Total to repay ')+M(i*m)+' '+CUR()+(rc>0&&i*m>rc?L(' · زيادة عن اللي استلمتيه ',' · extra over what you received ')+M(i*m-rc)+' ('+Math.round((i*m-rc)/rc*100)+'%)':'');
@@ -1430,7 +1431,7 @@ function debtFormUI(){
 }
 ['d-lent','d-borrowed','d-bank'].forEach(i=>$(i).addEventListener('change',debtFormUI));
 ['bInst','bMonths','dAmount'].forEach(i=>$(i).addEventListener('input',debtFormUI));
-function resetDebtForm(){debtEdit=null;['dPerson','dAmount','dDue','dNote','bInst','bMonths','bDay','bPaidN'].forEach(i=>$(i).value='');$('dDate').value=iso(new Date());$('bStart').value=ymOf(new Date());debtFormUI()}
+function resetDebtForm(){debtEdit=null;$('dOutside').checked=false;['dPerson','dAmount','dDue','dNote','bInst','bMonths','bDay','bPaidN'].forEach(i=>$(i).value='');$('dDate').value=iso(new Date());$('bStart').value=ymOf(new Date());debtFormUI()}
 $('dCancel').addEventListener('click',resetDebtForm);
 
 function drawDebts(){
@@ -1481,7 +1482,7 @@ $('debtForm').addEventListener('submit',async e=>{
     if(!(inst>0)){msg(L('اكتبي القسط الشهري.','Enter the monthly installment.'),true);$('bInst').focus();return}
     if(!(months>0)){msg(L('اكتبي عدد الشهور.','Enter the number of months.'),true);$('bMonths').focus();return}
     obj={dir,person,received:Math.round(amount*100)/100,amount:Math.round(inst*months*100)/100,inst:Math.round(inst*100)/100,months,day:Math.min(Math.max(day,1),31),start,date,note,due:''};
-  } else obj={dir,person,amount:Math.round(amount*100)/100,date,due:$('dDue').value||'',note};
+  } else obj={dir,person,amount:Math.round(amount*100)/100,date,due:$('dDue').value||'',note,notMonth:$('dOutside').checked};
   try{
     if(debtEdit){await putDebt(debtEdit,obj);msg(L('اتعدّل.','Updated.'))}
     else{
@@ -1496,7 +1497,7 @@ $('debtList').addEventListener('click',async e=>{
   const ed=e.target.closest('[data-dedit]'), p=e.target.closest('[data-dpay]'), sv=e.target.closest('[data-dsave]'), c=e.target.closest('[data-dcancel]'), dl=e.target.closest('[data-ddel]');
   if(ed){const d=debts.find(x=>x.id===ed.dataset.dedit);if(!d)return;
     debtEdit=d.id;$('d-'+(d.dir||'lent')).checked=true;
-    $('dPerson').value=d.person||'';$('dAmount').value=d.dir==='bank'?(d.received||''):d.amount;$('dDate').value=d.date||iso(new Date());$('dDue').value=d.due||'';$('dNote').value=d.note||'';
+    $('dPerson').value=d.person||'';$('dAmount').value=d.dir==='bank'?(d.received||''):d.amount;$('dDate').value=d.date||iso(new Date());$('dDue').value=d.due||'';$('dNote').value=d.note||'';$('dOutside').checked=!!d.notMonth;
     $('bInst').value=d.inst||'';$('bMonths').value=d.months||'';$('bDay').value=d.day||'';$('bStart').value=d.start||ymOf(new Date());$('bPaidN').value='';
     debtFormUI();$('debtForm').scrollIntoView({behavior:'smooth',block:'start'});$('dPerson').focus();return}
   if(p){payOpen=p.dataset.dpay;drawDebts();$('payAmt').focus();$('payAmt').select();return}
@@ -1924,6 +1925,6 @@ switchTab(['add','month','money','plans','log'].includes(h0)?h0:'add',true);
 init();
 })();
 </script>
-<script>window.APP_BUILD='20261126220918';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
+<script>window.APP_BUILD='20261127000042';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </body>
 </html>
