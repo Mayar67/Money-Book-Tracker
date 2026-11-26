@@ -762,6 +762,14 @@ async function delDebt(id){
   else{debts=debts.filter(x=>x.id!==id);saveLocal();render()}
 }
 async function putSettings(obj){
+  // Only the fields being changed are written over the saved copy, so a device whose settings
+  // haven't loaded yet (or are out of date) can never wipe income sources, the gamʿeya or accounts.
+  if(mode==='cloud'&&typeof sb!=='undefined'&&sb&&typeof sbUser!=='undefined'&&sbUser){
+    try{const {data:row,error}=await sb.from('settings').select('data').eq('user_id',sbUser.id).maybeSingle();
+      if(!error&&row&&row.data) settings=Object.assign({},row.data,obj); else settings=Object.assign(settings,obj);}
+    catch(e){settings=Object.assign(settings,obj)}
+    await setRef.set(settings); return;
+  }
   settings=Object.assign(settings,obj);
   if(mode==='cloud') await setRef.set(settings); else{saveLocal();render()}
 }
@@ -810,7 +818,7 @@ $('acctSel').addEventListener('change',()=>{if(selType==='move')buildTo()});
 function toggleExtra(){
   const outT=selType==='expense'||selType==='save'||selType==='withdraw'; $('fromWrap').hidden=!outT; if(outT) buildFromMonth();
   const mv=selType==='move'; $('toWrap').hidden=!mv; $('closeWrap').hidden=!mv; if(!mv) $('closeAcct').checked=false;
-  const acT=mv||(outT&&(selType!=='expense'||acctList().length>0)); $('acctWrap').hidden=!acT;
+  const acT=mv||(outT&&(selType!=='expense'||acctList().length>0)&&!(selType==='save'&&selCat===GAM)); $('acctWrap').hidden=!acT;
   const sr=curSrc(), ded=!!(sr&&sr.deductions), work=!!(sr&&sr.forPrev);
   $('dedWrap').hidden=!ded; $('netWrap').hidden=!ded; $('forWrap').hidden=!sr; $('workWrap').hidden=!work;
   if(sr) buildForMonth($('forMonth').value||undefined);
@@ -1925,6 +1933,6 @@ switchTab(['add','month','money','plans','log'].includes(h0)?h0:'add',true);
 init();
 })();
 </script>
-<script>window.APP_BUILD='20261127000042';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
+<script>window.APP_BUILD='20261127002623';window.checkAppUpdate=async()=>{try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.build&&j.build!==window.APP_BUILD){location.reload();return true}}catch(e){}return false};if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </body>
 </html>
